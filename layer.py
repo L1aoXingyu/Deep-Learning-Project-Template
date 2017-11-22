@@ -15,8 +15,8 @@ class conv2d(nn.Module):
         bias (bool, optional): If True, adds a learnable bias to the output       
         dilation (int or tuple, optional): Spacing between kernel elements
         groups (int, optional): Number of blocked connections from input channels to output channels
-        activation_fn(function, optional): Activation function used, like nn.ReLU ...
-        normalizer_fn(function, optional): Batch Normalization used
+        activation(str or function, optional): Activation function used, accept str or certain activation function, like 'relu' or nn.ReLU(), default is None
+        normalizer(bool, optional): If True, BatchNormalization will be used, default is False
         normalizer_param(dict, optional): Batch Normalization parameters dictionary, 'e' means eps, 'm' means momentum, 'a' means affine
         weight_initializer(function, optional): Customer weight initializer function applying to convolutional weight
         bias_initializer(function, optional): Customer bias initializer applying to convolutional bias
@@ -32,8 +32,8 @@ class conv2d(nn.Module):
                  bias=True,
                  dilation=1,
                  groups=1,
-                 activation_fn=nn.ReLU(True),
-                 normalizer_fn=nn.BatchNorm2d,
+                 activation=None,
+                 normalizer=False,
                  normalizer_param={'e': 1e-5,
                                    'm': 0.1,
                                    'a': True},
@@ -49,10 +49,23 @@ class conv2d(nn.Module):
         self.bias = bias
         self.order = order
 
-        if normalizer_fn is not None:
-            normalizer_fn = normalizer_fn(out_channels, normalizer_param['e'],
-                                          normalizer_param['m'],
-                                          normalizer_param['a'])
+        activation_dict = {
+            'relu': nn.ReLU(True),
+            'sigmoid': nn.Sigmoid(),
+            'softmax': nn.Softmax2d(),
+            'logsigmoid': nn.LogSigmoid()
+        }
+        if isinstance(activation, str):
+            activation_fn = activation_dict[activation]
+        else:
+            activation_fn = activation
+
+        if normalizer:
+            normalizer_fn = nn.BatchNorm2d(out_channels, normalizer_param['e'],
+                                           normalizer_param['m'],
+                                           normalizer_param['a'])
+        else:
+            normalizer_fn = None
 
         assert order in ['CNA', 'CAN', 'ACN', 'ANC', 'NCA',
                          'NAC'], 'Conv, BN and Activation order is illegal'
