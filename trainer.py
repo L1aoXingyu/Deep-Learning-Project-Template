@@ -1,3 +1,6 @@
+__all__ = ['ScheduledOptim']
+
+
 class ScheduledOptim(object):
     '''A wrapper class for learning rate scheduling'''
 

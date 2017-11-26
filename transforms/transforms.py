@@ -149,18 +149,6 @@ class Resize(object):
         return F.resize(img, self.size, self.interpolation)
 
 
-class Scale(Resize):
-    """
-    Note: This transform is deprecated in favor of Resize.
-    """
-
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            "The use of the transforms.Scale transform is deprecated, " +
-            "please use transforms.Resize instead.")
-        super(Scale, self).__init__(*args, **kwargs)
-
-
 class CenterCrop(object):
     """Crops the given PIL Image at the center.
 
@@ -313,6 +301,13 @@ class RandomHorizontalFlip(object):
 class RandomVerticalFlip(object):
     """Vertically flip the given PIL Image randomly with a probability of 0.5."""
 
+    def __init__(self, p=0.5):
+        """
+        Args:
+            p: probability of random vertically flip, the number is larger, the vertically flip probability if larger
+        """
+        self.p = p
+
     def __call__(self, img):
         """
         Args:
@@ -321,7 +316,7 @@ class RandomVerticalFlip(object):
         Returns:
             PIL Image: Randomly flipped image.
         """
-        if random.random() < 0.5:
+        if random.random() < self.p:
             return F.vflip(img)
         return img
 
