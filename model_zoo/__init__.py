@@ -4,3 +4,7 @@ from .vgg import *
 from .squeezenet import *
 from .inception import *
 from .densenet import *
+from .inceptionresnetv2 import *
+from .inceptionv4 import *
+from resnext import *
+from nasnet import *
