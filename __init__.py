@@ -1,2 +1,3 @@
 # __init__.py
-__all__ = ['layer']
+
+from .trainer import *
