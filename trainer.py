@@ -26,3 +26,11 @@ class ScheduledOptim(object):
     @property
     def learning_rate(self):
         return self.lr
+
+
+def find_lr():
+    pass
+
+
+def train_model():
+    pass

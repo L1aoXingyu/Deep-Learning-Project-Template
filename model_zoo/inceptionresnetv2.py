@@ -321,7 +321,7 @@ class InceptionResNetV2(nn.Module):
         x = self.classif(x) 
         return x
 
-def inceptionresnetv2(num_classes=1001, pretrained='imagenet'):
+def inceptionresnetv2(num_classes=1000, pretrained='imagenet'):
     r"""InceptionResNetV2 model architecture from the
     `"InceptionV4, Inception-ResNet..." <https://arxiv.org/abs/1602.07261>`_ paper.
     """
