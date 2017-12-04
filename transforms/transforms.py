@@ -272,18 +272,58 @@ class RandomCrop(object):
             img (PIL Image): Image to be cropped.
 
         Returns:
-            PIL Image: Cropped image.
+            PIL Image: Cropped image and cropped position, left corner, image width and height.
         """
         if self.padding > 0:
             img = F.pad(img, self.padding)
 
         i, j, h, w = self.get_params(img, self.size)
 
-        return F.crop(img, i, j, h, w)
+        return F.crop(img, i, j, h, w), (i, j, h, w)
 
+class FixedCrop(object):
+        """
+        Args:
+            img (PIL Image): Image to be cropped.
+            i, j, h, w (int): Image position to be cropped
+            padding (int or sequence, optional): Optional padding on each border
+                of the image. Default is 0, i.e no padding. If a sequence of length
+                4 is provided, it is used to pad left, top, right, bottom borders
+                respectively.
+
+        Returns:
+            tuple: params (i, j, h, w) to be passed to ``crop`` for random crop.
+        """
+
+    def __init__(self, i, j, h, w, padding=0):
+        self.i = i
+        self.j = j
+        self.h = h
+        self.w = w
+        self.padding = padding
+
+    def __call__(self, img):
+        """
+        Args:
+            img (PIL Image): Image to be cropped.
+
+        Returns:
+            PIL Image: Cropped image.
+        """
+        if self.padding > 0:
+            img = F.pad(img, self.padding)
+
+        return F.crop(img, self.i, self.j, self.h, self.w)
 
 class RandomHorizontalFlip(object):
     """Horizontally flip the given PIL Image randomly with a probability of 0.5."""
+
+    def __init__(self, p=0.5):
+        """
+        Args:
+            p: probability of random vertically flip, the number is larger, the vertically flip probability if larger
+        """
+        self.p = p
 
     def __call__(self, img):
         """
@@ -293,7 +333,7 @@ class RandomHorizontalFlip(object):
         Returns:
             PIL Image: Randomly flipped image.
         """
-        if random.random() < 0.5:
+        if random.random() < self.p:
             return F.hflip(img)
         return img
 
