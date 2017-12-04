@@ -14,7 +14,7 @@ from . import functional as F
 
 __all__ = [
     "Compose", "ToTensor", "ToPILImage", "Normalize", "Resize", "CenterCrop",
-    "Pad", "Lambda", "RandomCrop", "RandomHorizontalFlip",
+    "Pad", "Lambda", "RandomCrop", "FixedCrop", "RandomHorizontalFlip",
     "RandomVerticalFlip", "RandomResizedCrop", "RandomSizedCrop", "FiveCrop",
     "TenCrop", "LinearTransformation", "ColorJitter", "RandomRotation",
     "Grayscale", "RandomGrayscale"
