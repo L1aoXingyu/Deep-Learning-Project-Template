@@ -281,19 +281,20 @@ class RandomCrop(object):
 
         return F.crop(img, i, j, h, w), (i, j, h, w)
 
-class FixedCrop(object):
-        """
-        Args:
-            img (PIL Image): Image to be cropped.
-            i, j, h, w (int): Image position to be cropped
-            padding (int or sequence, optional): Optional padding on each border
-                of the image. Default is 0, i.e no padding. If a sequence of length
-                4 is provided, it is used to pad left, top, right, bottom borders
-                respectively.
 
-        Returns:
-            tuple: params (i, j, h, w) to be passed to ``crop`` for random crop.
-        """
+class FixedCrop(object):
+    """
+    Args:
+        img (PIL Image): Image to be cropped.
+        i, j, h, w (int): Image position to be cropped
+        padding (int or sequence, optional): Optional padding on each border
+            of the image. Default is 0, i.e no padding. If a sequence of length
+            4 is provided, it is used to pad left, top, right, bottom borders
+            respectively.
+
+    Returns:
+        tuple: params (i, j, h, w) to be passed to ``crop`` for random crop.
+    """
 
     def __init__(self, i, j, h, w, padding=0):
         self.i = i
@@ -314,6 +315,7 @@ class FixedCrop(object):
             img = F.pad(img, self.padding)
 
         return F.crop(img, self.i, self.j, self.h, self.w)
+
 
 class RandomHorizontalFlip(object):
     """Horizontally flip the given PIL Image randomly with a probability of 0.5."""
