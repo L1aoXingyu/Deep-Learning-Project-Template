@@ -1,5 +1,7 @@
 from __future__ import division
+import numpy as np
 import torch
+from mxnet import nd
 import math
 import random
 from PIL import Image, ImageOps, ImageEnhance
@@ -23,6 +25,10 @@ def _is_pil_image(img):
 
 def _is_tensor_image(img):
     return torch.is_tensor(img) and img.ndimension() == 3
+
+
+def _is_ndarray_image(img):
+    return isinstance(img, nd.NDArray) and img.ndim == 3
 
 
 def _is_numpy_image(img):
@@ -75,6 +81,51 @@ def to_tensor(pic):
         return img.float().div(255)
     else:
         return img
+
+
+def to_array(pic):
+    """Convert a ``PIL Image`` or ``numpy.ndarray`` to nd.array.
+    See ``ToArray`` for more details.
+    Args:
+        pic (PIL Image or numpy.ndarray): Image to be converted to nd.array.
+    Returns:
+        Array: Converted image.
+    """
+    if not (_is_pil_image(pic) or _is_numpy_image(pic)):
+        raise TypeError(
+            'pic should be PIL Image or ndarray. Got {}'.format(type(pic)))
+
+    if isinstance(pic, np.ndarray):
+        # handle numpy array
+        img = nd.array(pic.transpose((2, 0, 1)))
+        # backward compatibility
+        return img.astype(np.float32) / 255
+
+    if accimage is not None and isinstance(pic, accimage.Image):
+        nppic = np.zeros(
+            [pic.channels, pic.height, pic.width], dtype=np.float32)
+        pic.copyto(nppic)
+        return nd.array(nppic)
+
+    # handle PIL Image
+    if pic.mode == 'I':
+        img = nd.array(pic, dtype=np.int32)
+    elif pic.mode == 'I;16':
+        img = nd.array(pic, dtype=np.int16)
+    else:
+        img = nd.array(pic, dtype=np.float32)
+    # PIL image mode: 1, L, P, I, F, RGB, YCbCr, RGBA, CMYK
+    if pic.mode == 'YCbCr':
+        nchannel = 3
+    elif pic.mode == 'I;16':
+        nchannel = 1
+    else:
+        nchannel = len(pic.mode)
+    img = img.reshape((img.shape[0], img.shape[1], nchannel))
+    # put it from HWC to CHW format
+    # yikes, this transpose takes 80% of the loading time/CPU
+    img = img.transpose((2, 0, 1))
+    return img.astype(np.float32) / 255
 
 
 def to_pil_image(pic, mode=None):
@@ -150,11 +201,12 @@ def normalize(tensor, mean, std):
     Returns:
         Tensor: Normalized Tensor image.
     """
-    if not _is_tensor_image(tensor):
-        raise TypeError('tensor is not a torch image.')
+    if (not _is_tensor_image(tensor)) and (not _is_ndarray_image(tensor)):
+        raise TypeError('tensor is not a torch or ndarray image.')
     # TODO: make efficient
     for t, m, s in zip(tensor, mean, std):
-        t.sub_(m).div_(s)
+        t -= m
+        t /= m
     return tensor
 
 

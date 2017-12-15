@@ -13,11 +13,11 @@ import warnings
 from . import functional as F
 
 __all__ = [
-    "Compose", "ToTensor", "ToPILImage", "Normalize", "Resize", "CenterCrop",
-    "Pad", "Lambda", "RandomCrop", "FixedCrop", "RandomHorizontalFlip",
-    "RandomVerticalFlip", "RandomResizedCrop", "RandomSizedCrop", "FiveCrop",
-    "TenCrop", "LinearTransformation", "ColorJitter", "RandomRotation",
-    "Grayscale", "RandomGrayscale"
+    "Compose", "ToTensor", "ToArray", "ToPILImage", "Normalize", "Resize",
+    "CenterCrop", "Pad", "Lambda", "RandomCrop", "FixedCrop",
+    "RandomHorizontalFlip", "RandomVerticalFlip", "RandomResizedCrop",
+    "RandomSizedCrop", "FiveCrop", "TenCrop", "LinearTransformation",
+    "ColorJitter", "RandomRotation", "Grayscale", "RandomGrayscale"
 ]
 
 
@@ -59,6 +59,11 @@ class ToTensor(object):
             Tensor: Converted image.
         """
         return F.to_tensor(pic)
+
+
+class ToArray(object):
+    def __call__(self, pic):
+        return F.to_array(pic)
 
 
 class ToPILImage(object):
