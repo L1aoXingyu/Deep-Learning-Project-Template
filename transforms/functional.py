@@ -44,8 +44,8 @@ def to_tensor(pic):
         Tensor: Converted image.
     """
     if not (_is_pil_image(pic) or _is_numpy_image(pic)):
-        raise TypeError(
-            'pic should be PIL Image or ndarray. Got {}'.format(type(pic)))
+        raise TypeError('pic should be PIL Image or ndarray. Got {}'.format(
+            type(pic)))
 
     if isinstance(pic, np.ndarray):
         # handle numpy array
@@ -92,8 +92,8 @@ def to_array(pic):
         Array: Converted image.
     """
     if not (_is_pil_image(pic) or _is_numpy_image(pic)):
-        raise TypeError(
-            'pic should be PIL Image or ndarray. Got {}'.format(type(pic)))
+        raise TypeError('pic should be PIL Image or ndarray. Got {}'.format(
+            type(pic)))
 
     if isinstance(pic, np.ndarray):
         # handle numpy array
@@ -139,8 +139,8 @@ def to_pil_image(pic, mode=None):
         PIL Image: Image converted to PIL Image.
     """
     if not (_is_numpy_image(pic) or _is_tensor_image(pic)):
-        raise TypeError(
-            'pic should be Tensor or ndarray. Got {}.'.format(type(pic)))
+        raise TypeError('pic should be Tensor or ndarray. Got {}.'.format(
+            type(pic)))
 
     npimg = pic
     if isinstance(pic, torch.FloatTensor):
@@ -172,16 +172,18 @@ def to_pil_image(pic, mode=None):
     elif npimg.shape[2] == 4:
         permitted_4_channel_modes = ['RGBA', 'CMYK']
         if mode is not None and mode not in permitted_4_channel_modes:
-            raise ValueError("Only modes {} are supported for 4D inputs".
-                             format(permitted_4_channel_modes))
+            raise ValueError(
+                "Only modes {} are supported for 4D inputs".format(
+                    permitted_4_channel_modes))
 
         if mode is None and npimg.dtype == np.uint8:
             mode = 'RGBA'
     else:
         permitted_3_channel_modes = ['RGB', 'YCbCr', 'HSV']
         if mode is not None and mode not in permitted_3_channel_modes:
-            raise ValueError("Only modes {} are supported for 3D inputs".
-                             format(permitted_3_channel_modes))
+            raise ValueError(
+                "Only modes {} are supported for 3D inputs".format(
+                    permitted_3_channel_modes))
         if mode is None and npimg.dtype == np.uint8:
             mode = 'RGB'
 
@@ -201,12 +203,11 @@ def normalize(tensor, mean, std):
     Returns:
         Tensor: Normalized Tensor image.
     """
-    if (not _is_tensor_image(tensor)) and (not _is_ndarray_image(tensor)):
-        raise TypeError('tensor is not a torch or ndarray image.')
+    if not _is_tensor_image(tensor):
+        raise TypeError('tensor is not a torch image.')
     # TODO: make efficient
     for t, m, s in zip(tensor, mean, std):
-        t -= m
-        t /= m
+        t.sub_(m).div_(s)
     return tensor
 
 
@@ -301,7 +302,7 @@ def center_crop(img, output_size):
     th, tw = output_size
     i = int(round((h - th) / 2.))
     j = int(round((w - tw) / 2.))
-    return crop(img, i, j, th, tw)
+    return crop(img, i, j, th, tw), (i, j, th, tw)
 
 
 def resized_crop(img, i, j, h, w, size, interpolation=Image.BILINEAR):
@@ -373,8 +374,9 @@ def five_crop(img, size):
     w, h = img.size
     crop_h, crop_w = size
     if crop_w > w or crop_h > h:
-        raise ValueError("Requested crop size {} is bigger than input size {}".
-                         format(size, (h, w)))
+        raise ValueError(
+            "Requested crop size {} is bigger than input size {}".format(
+                size, (h, w)))
     tl = img.crop((0, 0, crop_w, crop_h))
     tr = img.crop((w - crop_w, 0, w, crop_h))
     bl = img.crop((0, h - crop_h, crop_w, h))
