@@ -134,7 +134,10 @@ class Trainer(object):
             os.mkdir('./checkpoints')
         prefix = './checkpoints/' + self.opt.model + '_'
         name = time.strftime(prefix + '%m%d_%H:%M:%S.pth')
-        torch.save(self.model.state_dict(), name)
+        if hasattr(self.model, 'module'):
+            torch.save(self.model.module.state_dict(), name)
+        else:
+            torch.save(self.model.state_dict(), name)
 
     def find_lr(self, begin_lr=1e-5, end_lr=1.):
         self.model.train()
