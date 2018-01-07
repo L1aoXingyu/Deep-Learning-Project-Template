@@ -44,17 +44,17 @@ class Trainer(object):
                  criterion=None,
                  optimizer=None,
                  train_data=None,
-                 valid_data=None):
+                 test_data=None):
         self.opt = opt
         self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
         self.train_data = train_data
-        self.valid_data = valid_data
+        self.test_data = test_data
         self.train_loss = meter.AverageValueMeter()
         self.train_acc = meter.AverageValueMeter()
-        self.eval_loss = meter.AverageValueMeter()
-        self.eval_acc = meter.AverageValueMeter()
+        self.test_loss = meter.AverageValueMeter()
+        self.test_acc = meter.AverageValueMeter()
 
     def train(self):
         self.train_loss.reset()
@@ -89,11 +89,11 @@ class Trainer(object):
             self.train_acc.value()[0]))
         return train_str
 
-    def eval(self):
-        self.eval_loss.reset()
-        self.eval_acc.reset()
+    def test(self):
+        self.test_loss.reset()
+        self.test_acc.reset()
         self.model.eval()
-        for i, data in enumerate(self.valid_data):
+        for i, data in enumerate(self.test_data):
             im, label = data
             if torch.cuda.is_available() and self.opt.use_gpu:
                 im = im.cuda()
@@ -102,25 +102,27 @@ class Trainer(object):
             label = Variable(label, volatile=True)
             score = self.model(im)
             loss = self.criterion(score, label)
-            self.eval_loss.add(loss.data[0])
+            self.test_loss.add(loss.data[0])
             acc = (score.max(1)[1] == label).type(torch.FloatTensor).mean()
-            self.eval_acc.add(acc.data[0])
+            self.test_acc.add(acc.data[0])
 
-        eval_str = ('Eval Loss: {:.4f}, Eval Acc: {:.4f}'.format(
-            self.eval_loss.value()[0],
-            self.eval_acc.value()[0]))
-        return eval_str
+        test_str = ('Test Loss: {:.4f}, Test Acc: {:.4f}'.format(
+            self.test_loss.value()[0],
+            self.test_acc.value()[0]))
+        return test_str
 
     def fit(self):
         for e in range(1, self.opt.max_epoch + 1):
+            if opt.lr_decay_freq is not None and e % opt.lr_decay_freq == 0:
+                self.optimizer.multi(opt.lr_decay)
             prev_time = datetime.now()
             train_str = self.train()
-            eval_str = self.eval()
+            test_str = self.test()
             cur_time = datetime.now()
             h, remainder = divmod((cur_time - prev_time).seconds, 3600)
             m, s = divmod(remainder, 60)
             time_str = (' Time: {:.0f}:{:.0f}:{:.0f}'.format(h, m, s))
-            epoch_str = ('Epoch: {},'.format(e) + train_str + ', ' + eval_str +
+            epoch_str = ('Epoch: {},'.format(e) + train_str + ', ' + test_str +
                          ', lr: {:.1e}'.format(self.optimizer.learning_rate) +
                          ',' + time_str)
             print(epoch_str)
@@ -194,6 +196,11 @@ class ScheduledOptim(object):
     def zero_grad(self):
         "Zero out the gradients by the inner optimizer"
         self.optimizer.zero_grad()
+
+    def lr_multi(self, multi):
+        for param_group in self.optimizer.param_groups:
+            param_group['lr'] *= multi
+        self.lr = self.optimizer.param_group[0]['lr']
 
     def set_learning_rate(self, lr):
         self.lr = lr
