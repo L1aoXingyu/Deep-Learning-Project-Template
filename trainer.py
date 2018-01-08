@@ -132,7 +132,7 @@ class Trainer(object):
 
     def write_config(self):
         config_str = (
-            'Configure: \n' + 'model: ' + self.opt.model + '\n' + 'epochs' +
+            'Configure: \n' + 'model: ' + self.opt.model + '\n' + 'epochs: ' +
             self.opt.max_epoch + '\n' + 'lr: ' + self.opt.lr + '\n')
         if hasattr(self.opt, 'lr_decay_freq'):
             config_str += 'lr_decay_freq: ' + self.opt.lr_decay_freq + '\n'
