@@ -115,7 +115,7 @@ class Trainer(object):
         for e in range(1, self.opt.max_epoch + 1):
             if hasattr(opt, 'lr_decay_freq') and hasattr(
                     opt, 'lr_decay') and e % opt.lr_decay_freq == 0:
-                self.optimizer.multi(opt.lr_decay)
+                self.optimizer.lr_multi(opt.lr_decay)
             prev_time = datetime.now()
             train_str = self.train()
             test_str = self.test()
