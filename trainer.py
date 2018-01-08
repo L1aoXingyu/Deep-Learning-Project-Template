@@ -133,12 +133,13 @@ class Trainer(object):
     def write_config(self):
         config_str = (
             'Configure: \n' + 'model: ' + self.opt.model + '\n' + 'epochs: ' +
-            self.opt.max_epoch + '\n' + 'lr: ' + self.opt.lr + '\n')
+            str(self.opt.max_epoch) + '\n' + 'lr: ' + str(self.opt.lr) + '\n')
         if hasattr(self.opt, 'lr_decay_freq'):
-            config_str += 'lr_decay_freq: ' + self.opt.lr_decay_freq + '\n'
-            config_str += 'lr_decay: ' + self.opt.lr_decay + '\n'
+            config_str += 'lr_decay_freq: ' + str(
+                self.opt.lr_decay_freq) + '\n'
+            config_str += 'lr_decay: ' + str(self.opt.lr_decay) + '\n'
         if hasattr(self.opt, 'weight_decay'):
-            config_str += 'weight_decay: ' + self.opt.weight_decay + '\n'
+            config_str += 'weight_decay: ' + str(self.opt.weight_decay) + '\n'
 
         with open(self.opt.result_file, 'a') as f:
             f.write(config_str)
