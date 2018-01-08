@@ -165,8 +165,7 @@ class Trainer(object):
             self.optimizer.step()
             lr.append(self.optimizer.learning_rate)
             losses.append(loss.data[0])
-            self.optimizer.set_learning_rate(
-                self.optimizer.learning_rate * lr_mult)
+            self.optimizer.multi(lr_mult)
             if loss.data[0] < best_loss:
                 best_loss = loss.data[0]
             if loss.data[0] > 3 * best_loss or self.optimizer.learning_rate > 1.:
@@ -201,7 +200,7 @@ class ScheduledOptim(object):
     def lr_multi(self, multi):
         for param_group in self.optimizer.param_groups:
             param_group['lr'] *= multi
-        self.lr = self.optimizer.param_group[0]['lr']
+        self.lr = self.optimizer.param_groups[0]['lr']
 
     def set_learning_rate(self, lr):
         self.lr = lr
