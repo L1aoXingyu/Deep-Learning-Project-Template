@@ -10,29 +10,25 @@ from torch.autograd import Variable
 
 from . import meter
 
+# class DefaultConfig(object):
+#     model = 'AlexNet'  # 使用的模型，名字必须与models/__init__.py中的名字一致
 
-class DefaultConfig(object):
-    model = 'AlexNet'  # 使用的模型，名字必须与models/__init__.py中的名字一致
+#     train_data_root = './data/train/'  # 训练集存放路径
+#     test_data_root = './data/test1'  # 测试集存放路径
+#     load_model_path = 'checkpoints/model.pth'  # 加载预训练的模型的路径，为None代表不加载
 
-    train_data_root = './data/train/'  # 训练集存放路径
-    test_data_root = './data/test1'  # 测试集存放路径
-    load_model_path = 'checkpoints/model.pth'  # 加载预训练的模型的路径，为None代表不加载
+#     batch_size = 128  # batch size
+#     use_gpu = True  # use GPU or not
+#     num_workers = 4  # how many workers for loading data
+#     print_freq = 20  # print info every N batch
+#     save_freq = 20  # save model every N epochs
+#     debug_file = '/tmp/debug'  # if os.path.exists(debug_file): enter ipdb
+#     result_file = 'result.txt'
 
-    batch_size = 128  # batch size
-    use_gpu = True  # use GPU or not
-    num_workers = 4  # how many workers for loading data
-    print_freq = 20  # print info every N batch
-    save_freq = 20  # save model every N epochs
-    debug_file = '/tmp/debug'  # if os.path.exists(debug_file): enter ipdb
-    result_file = 'result.csv'
-
-    max_epoch = 10
-    lr = 0.1  # initial learning rate
-    lr_decay = 0.95
-    weight_decay = 1e-4
-
-
-opt = DefaultConfig()
+#     max_epoch = 10
+#     lr = 0.1  # initial learning rate
+#     lr_decay = 0.95
+#     weight_decay = 1e-4
 
 
 class Trainer(object):
@@ -112,6 +108,7 @@ class Trainer(object):
         return test_str
 
     def fit(self):
+        self.write_config()
         for e in range(1, self.opt.max_epoch + 1):
             if hasattr(self.opt, 'lr_decay_freq') and hasattr(
                     self.opt, 'lr_decay') and e % self.opt.lr_decay_freq == 0:
@@ -128,8 +125,23 @@ class Trainer(object):
                          ',' + time_str)
             print(epoch_str)
             print()
+            with open(self.opt.result_file, 'a') as f:
+                f.write(epoch_str + '\n')
             if e % self.opt.save_freq == 0:
                 self.save()
+
+    def write_config(self):
+        config_str = (
+            'Configure: \n' + 'model: ' + self.opt.model + '\n' + 'epochs' +
+            self.opt.max_epoch + '\n' + 'lr: ' + self.opt.lr + '\n')
+        if hasattr(self.opt, 'lr_decay_freq'):
+            config_str += 'lr_decay_freq: ' + self.opt.lr_decay_freq + '\n'
+            config_str += 'lr_decay: ' + self.opt.lr_decay + '\n'
+        if hasattr(self.opt, 'weight_decay'):
+            config_str += 'weight_decay: ' + self.opt.weight_decay + '\n'
+
+        with open(self.opt.result_file, 'a') as f:
+            f.write(config_str)
 
     def save(self):
         ''' save model, default name is net + time, such as net_0101_23:57:28.pth '''
