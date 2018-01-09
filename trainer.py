@@ -47,6 +47,7 @@ class Trainer(object):
         self.optimizer = optimizer
         self.train_data = train_data
         self.test_data = test_data
+        self.config = self.write_config()
         self.train_loss = meter.AverageValueMeter()
         self.train_acc = meter.AverageValueMeter()
         self.test_loss = meter.AverageValueMeter()
@@ -108,7 +109,8 @@ class Trainer(object):
         return test_str
 
     def fit(self):
-        self.write_config()
+        with open(self.opt.result_file, 'a') as f:
+            f.write(self.config + '\n')
         for e in range(1, self.opt.max_epoch + 1):
             if hasattr(self.opt, 'lr_decay_freq') and hasattr(
                     self.opt, 'lr_decay') and e % self.opt.lr_decay_freq == 0:
@@ -141,8 +143,7 @@ class Trainer(object):
         if hasattr(self.opt, 'weight_decay'):
             config_str += 'weight_decay: ' + str(self.opt.weight_decay) + '\n'
 
-        with open(self.opt.result_file, 'a') as f:
-            f.write(config_str)
+        return config_str
 
     def save(self):
         ''' save model, default name is net + time, such as net_0101_23:57:28.pth '''
