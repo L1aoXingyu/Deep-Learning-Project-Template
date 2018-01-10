@@ -150,7 +150,7 @@ class Trainer(object):
         ''' save model, default name is net + time, such as net_0101_23:57:28.pth '''
         if not os.path.exists(self.opt.save_file):
             os.mkdir(self.opt.save_file)
-        prefix = self.opt.save_file + self.opt.model + '_'
+        prefix = os.path.join(self.opt.save_file, self.opt.model) + '_'
         name = time.strftime(prefix + '%m%d_%H:%M:%S.pth')
         if hasattr(self.model, 'module'):
             torch.save(self.model.module.state_dict(), name)
