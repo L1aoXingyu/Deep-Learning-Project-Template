@@ -22,6 +22,7 @@ from . import meter
 #     num_workers = 4  # how many workers for loading data
 #     print_freq = 20  # print info every N batch
 #     save_freq = 20  # save model every N epochs
+#     save_file = './checkpoints/'
 #     debug_file = '/tmp/debug'  # if os.path.exists(debug_file): enter ipdb
 #     result_file = 'result.txt'
 
@@ -147,9 +148,9 @@ class Trainer(object):
 
     def save(self):
         ''' save model, default name is net + time, such as net_0101_23:57:28.pth '''
-        if not os.path.exists('./checkpoints'):
-            os.mkdir('./checkpoints')
-        prefix = './checkpoints/' + self.opt.model + '_'
+        if not os.path.exists(self.opt.save_file):
+            os.mkdir(self.opt.save_file)
+        prefix = self.opt.save_file + self.opt.model + '_'
         name = time.strftime(prefix + '%m%d_%H:%M:%S.pth')
         if hasattr(self.model, 'module'):
             torch.save(self.model.module.state_dict(), name)
