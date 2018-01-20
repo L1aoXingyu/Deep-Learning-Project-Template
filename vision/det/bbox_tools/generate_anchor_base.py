@@ -1,6 +1,3 @@
-# reference chainercv
-from __future__ import division
-
 import numpy as np
 import six
 
@@ -51,3 +48,24 @@ def generate_anchor_base(base_size=16,
             anchor_base[index, 2] = py + h / 2.
             anchor_base[index, 3] = px + w / 2.
     return anchor_base
+
+
+def _enumerate_shifted_anchor(anchor_base, feat_stride, height, width):
+    # Enumerate all shifted anchors:
+    #
+    # add A anchors (1, A, 4) to
+    # cell K shifts (K, 1, 4) to get
+    # shift anchors (K, A, 4)
+    # reshape to (K*A, 4) shifted anchors
+    shift_y = np.arange(0, height * feat_stride, feat_stride)
+    shift_x = np.arange(0, width * feat_stride, feat_stride)
+    shift_x, shift_y = np.meshgrid(shift_x, shift_y)
+    shift = np.stack((shift_y.ravel(), shift_x.ravel(),
+                      shift_y.ravel(), shift_x.ravel()), axis=1)
+
+    a = anchor_base.shape[0]
+    k = shift.shape[0]
+    anchor = anchor_base.reshape((1, a, 4)) + \
+             shift.reshape((1, k, 4)).transpose((1, 0, 2))
+    anchor = anchor.reshape((k * a, 4)).astype(np.float32)
+    return anchor
