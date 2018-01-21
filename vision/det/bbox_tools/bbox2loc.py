@@ -2,7 +2,8 @@ import numpy as np
 
 
 def bbox2loc(src_bbox, dst_bbox):
-    """Encodes the source and the destination bounding boxes to "loc".
+    """Encodes the source and the destination bounding boxes to "loc". This is used to compute model regression
+    output according to Faster-RCNN paper.
     Given bounding boxes, this function computes offsets and scales
     to match the source bounding boxes to the target bounding boxes.
     Mathematcially, given a bounding box whose center is

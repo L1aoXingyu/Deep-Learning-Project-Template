@@ -50,7 +50,7 @@ def generate_anchor_base(base_size=16,
     return anchor_base
 
 
-def _enumerate_shifted_anchor(anchor_base, feat_stride, height, width):
+def enumerate_shifted_anchor(anchor_base, feat_stride, height, width):
     # Enumerate all shifted anchors:
     #
     # add A anchors (1, A, 4) to
@@ -65,7 +65,6 @@ def _enumerate_shifted_anchor(anchor_base, feat_stride, height, width):
 
     a = anchor_base.shape[0]
     k = shift.shape[0]
-    anchor = anchor_base.reshape((1, a, 4)) + \
-             shift.reshape((1, k, 4)).transpose((1, 0, 2))
+    anchor = anchor_base.reshape((1, a, 4)) + shift.reshape((1, k, 4)).transpose((1, 0, 2))
     anchor = anchor.reshape((k * a, 4)).astype(np.float32)
     return anchor

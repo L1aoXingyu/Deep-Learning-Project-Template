@@ -2,7 +2,8 @@ import numpy as np
 
 
 def loc2bbox(src_bbox, loc):
-    """Decode bounding boxes from bounding box offsets and scales.
+    """Decode bounding boxes from bounding box offsets and scales. src_bbox usually is anchor box coordinate and
+    loc is the model result, so this is used to get the predicted bbox.
     Given bounding box offsets and scales computed by
     :meth:`bbox2loc`, this function decodes the representation to
     coordinates in 2D image coordinates.

@@ -10,6 +10,7 @@ from torch.autograd import Variable
 
 from . import meter
 
+
 # class DefaultConfig(object):
 #     model = 'AlexNet'  # 使用的模型，名字必须与models/__init__.py中的名字一致
 
@@ -33,19 +34,20 @@ from . import meter
 
 
 class Trainer(object):
-    ''' A base class for model training '''
+    """ A base class for model training
+
+    """
 
     def __init__(self,
                  opt=None,
-                 model=None,
-                 criterion=None,
-                 optimizer=None,
                  train_data=None,
-                 test_data=None):
+                 test_data=None,
+                 model=None,
+                 criterion=None):
         self.opt = opt
         self.model = model
         self.criterion = criterion
-        self.optimizer = optimizer
+        self.optimizer = torch.optim.SGD(self.model.parameters(), lr=0.1)
         self.train_data = train_data
         self.test_data = test_data
         self.config = self.write_config()
@@ -135,8 +137,8 @@ class Trainer(object):
 
     def write_config(self):
         config_str = (
-            'Configure: \n' + 'model: ' + self.opt.model + '\n' + 'epochs: ' +
-            str(self.opt.max_epoch) + '\n' + 'lr: ' + str(self.opt.lr) + '\n')
+                'Configure: \n' + 'model: ' + self.opt.model + '\n' + 'epochs: ' +
+                str(self.opt.max_epoch) + '\n' + 'lr: ' + str(self.opt.lr) + '\n')
         if hasattr(self.opt, 'lr_decay_freq'):
             config_str += 'lr_decay_freq: ' + str(
                 self.opt.lr_decay_freq) + '\n'
@@ -160,7 +162,7 @@ class Trainer(object):
     def find_lr(self, begin_lr=1e-5, end_lr=1.):
         self.model.train()
         self.optimizer.set_learning_rate(begin_lr)
-        lr_mult = (end_lr / begin_lr)**(1. / 100)
+        lr_mult = (end_lr / begin_lr) ** (1. / 100)
         lr = []
         losses = []
         best_loss = 1e9
