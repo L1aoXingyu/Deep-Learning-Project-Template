@@ -34,7 +34,7 @@ from . import meter
 
 
 class Trainer(object):
-    """ A base class for model training
+    """ A base class for model training ane evaluating
 
     """
 
@@ -43,11 +43,12 @@ class Trainer(object):
                  train_data=None,
                  test_data=None,
                  model=None,
-                 criterion=None):
+                 criterion=None,
+                 optimizer=None):
         self.opt = opt
         self.model = model
         self.criterion = criterion
-        self.optimizer = torch.optim.SGD(self.model.parameters(), lr=0.1)
+        self.optimizer = optimizer
         self.train_data = train_data
         self.test_data = test_data
         self.config = self.write_config()
