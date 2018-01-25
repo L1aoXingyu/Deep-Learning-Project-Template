@@ -6,31 +6,12 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from config import opt
+from tensorboardX import SummaryWriter
 from torch.autograd import Variable
+from tqdm import tqdm
 
 from . import meter
-
-
-# class DefaultConfig(object):
-#     model = 'AlexNet'  # 使用的模型，名字必须与models/__init__.py中的名字一致
-
-#     train_data_root = './data/train/'  # 训练集存放路径
-#     test_data_root = './data/test1'  # 测试集存放路径
-#     load_model_path = 'checkpoints/model.pth'  # 加载预训练的模型的路径，为None代表不加载
-
-#     batch_size = 128  # batch size
-#     use_gpu = True  # use GPU or not
-#     num_workers = 4  # how many workers for loading data
-#     print_freq = 20  # print info every N batch
-#     save_freq = 20  # save model every N epochs
-#     save_file = './checkpoints/'
-#     debug_file = '/tmp/debug'  # if os.path.exists(debug_file): enter ipdb
-#     result_file = 'result.txt'
-
-#     max_epoch = 10
-#     lr = 0.1  # initial learning rate
-#     lr_decay = 0.95
-#     weight_decay = 1e-4
 
 
 class Trainer(object):
@@ -39,33 +20,42 @@ class Trainer(object):
     """
 
     def __init__(self,
-                 opt=None,
                  train_data=None,
                  test_data=None,
                  model=None,
                  criterion=None,
                  optimizer=None):
-        self.opt = opt
         self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
         self.train_data = train_data
         self.test_data = test_data
         self.config = self.write_config()
-        self.train_loss = meter.AverageValueMeter()
-        self.train_acc = meter.AverageValueMeter()
-        self.test_loss = meter.AverageValueMeter()
-        self.test_acc = meter.AverageValueMeter()
+        self.write_result = hasattr(opt, 'result_file')
+
+        self.loss_meter = meter.AverageValueMeter()
+        self.acc_meter = meter.AverageValueMeter()
+        if hasattr(opt, 'vis_dir'):
+            vis_dir = opt.vis_dir
+        else:
+            vis_dir = './'
+        self.writer = SummaryWriter(vis_dir)
+        self.n_iter = 0.
+        self.n_plot = 0.
 
     def train(self):
-        self.train_loss.reset()
-        self.train_acc.reset()
+        """ Train a epoch in the whole train set
+
+        :return (str): train describe
+        """
+        self.loss_meter.reset()
+        self.acc_meter.reset()
         self.model.train()
-        for i, data in enumerate(self.train_data):
+        for data in tqdm(self.train_data):
             im, label = data
-            if torch.cuda.is_available() and self.opt.use_gpu:
-                im = im.cuda()
-                label = label.cuda()
+            if torch.cuda.is_available() and opt.use_gpu:
+                im = im.cuda(opt.ctx)
+                label = label.cuda(self.opt.ctx)
             im = Variable(im)
             label = Variable(label)
             score = self.model(im)
@@ -73,52 +63,63 @@ class Trainer(object):
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
-
-            self.train_loss.add(loss.data[0])
+            # Update meter.
+            self.loss_meter.add(loss.data[0])
             acc = (score.max(1)[1] == label).type(torch.FloatTensor).mean()
-            self.train_acc.add(acc.data[0])
-            if (i + 1) % self.opt.print_freq == 0:
-                epoch_str = (
-                    '{}/{}, Train Loss: {:.4f}, Train Acc: {:.4f} '.format(
-                        i + 1, len(self.train_data),
-                        self.train_loss.value()[0],
-                        self.train_acc.value()[0]))
-                print(epoch_str)
+            self.acc_meter.add(acc.data[0])
 
-        train_str = (' Train Loss: {:.4f}, Train Acc: {:.4f}'.format(
-            self.train_loss.value()[0],
-            self.train_acc.value()[0]))
+            # Update to tensorboard.
+            if self.n_iter % opt.plot_freq == 0:
+                self.writer.add_scalars('loss', {'train': self.loss_meter.value()[0]}, self.n_plot)
+                self.writer.add_scalars('acc', {'train': self.acc_meter.value()[0]}, self.n_plot)
+                self.n_plot += 1
+            self.n_iter += 1
+            # if (i + 1) % self.opt.print_freq == 0:
+            #     epoch_str = (
+            #         '{}/{}, Train Loss: {:.4f}, Train Acc: {:.4f} '.format(
+            #             i + 1, len(self.train_data),
+            #             self.loss_meter.value()[0],
+            #             self.acc_meter.value()[0]))
+            #     print(epoch_str)
+
+        train_str = ('Train Loss: {:.4f}, Train Acc: {:.4f}'.format(
+            self.loss_meter.value()[0],
+            self.acc_meter.value()[0]))
         return train_str
 
     def test(self):
-        self.test_loss.reset()
-        self.test_acc.reset()
+        self.loss_meter.reset()
+        self.acc_meter.reset()
         self.model.eval()
-        for i, data in enumerate(self.test_data):
+        for data in tqdm(self.test_data):
             im, label = data
-            if torch.cuda.is_available() and self.opt.use_gpu:
-                im = im.cuda()
-                label = label.cuda()
+            if torch.cuda.is_available() and opt.use_gpu:
+                im = im.cuda(opt.ctx)
+                label = label.cuda(opt.ctx)
             im = Variable(im, volatile=True)
             label = Variable(label, volatile=True)
             score = self.model(im)
             loss = self.criterion(score, label)
-            self.test_loss.add(loss.data[0])
+            self.loss_meter.add(loss.data[0])
             acc = (score.max(1)[1] == label).type(torch.FloatTensor).mean()
-            self.test_acc.add(acc.data[0])
+            self.acc_meter.add(acc.data[0])
 
+        # Add to tensorboard.
+        self.writer.add_scalars('loss', {'eval': self.loss_meter.value()[0]}, self.n_plot)
+        self.writer.add_scalars('acc', {'test': self.acc_meter.value()[0]}, self.n_plot)
         test_str = ('Test Loss: {:.4f}, Test Acc: {:.4f}'.format(
-            self.test_loss.value()[0],
-            self.test_acc.value()[0]))
+            self.loss_meter.value()[0],
+            self.acc_meter.value()[0]))
         return test_str
 
     def fit(self):
-        with open(self.opt.result_file, 'a') as f:
-            f.write(self.config + '\n')
-        for e in range(1, self.opt.max_epoch + 1):
-            if hasattr(self.opt, 'lr_decay_freq') and hasattr(
-                    self.opt, 'lr_decay') and e % self.opt.lr_decay_freq == 0:
-                self.optimizer.lr_multi(self.opt.lr_decay)
+        if self.write_result:
+            with open(opt.result_file, 'a') as f:
+                f.write(self.config + '\n')
+        for e in range(1, opt.max_epoch + 1):
+            if hasattr(opt, 'lr_decay_freq') and hasattr(
+                    opt, 'lr_decay') and e % opt.lr_decay_freq == 0:
+                self.optimizer.lr_multi(opt.lr_decay)
             prev_time = datetime.now()
             train_str = self.train()
             test_str = self.test()
@@ -126,34 +127,41 @@ class Trainer(object):
             h, remainder = divmod((cur_time - prev_time).seconds, 3600)
             m, s = divmod(remainder, 60)
             time_str = (' Time: {:.0f}:{:.0f}:{:.0f}'.format(h, m, s))
-            epoch_str = ('Epoch: {},'.format(e) + train_str + ', ' + test_str +
+            epoch_str = ('Epoch: {}, '.format(e) + train_str + ', ' + test_str +
                          ', lr: {:.1e}'.format(self.optimizer.learning_rate) +
                          ',' + time_str)
             print(epoch_str)
             print()
-            with open(self.opt.result_file, 'a') as f:
-                f.write(epoch_str + '\n')
-            if e % self.opt.save_freq == 0:
+            if self.write_result:
+                with open(opt.result_file, 'a') as f:
+                    f.write(epoch_str + '\n')
+            if e % opt.save_freq == 0:
                 self.save()
 
     def write_config(self):
-        config_str = (
-                'Configure: \n' + 'model: ' + self.opt.model + '\n' + 'epochs: ' +
-                str(self.opt.max_epoch) + '\n' + 'lr: ' + str(self.opt.lr) + '\n')
-        if hasattr(self.opt, 'lr_decay_freq'):
+        config_str = 'Configure: \n'
+        if hasattr(opt, 'model'):
+            config_str += 'model: ' + str(opt.model) + '\n'
+        if hasattr(opt, 'max_epoch'):
+            config_str += 'epochs: ' + str(opt.max_epoch) + '\n'
+        if hasattr(opt, 'lr'):
+            config_str += 'lr: ' + str(opt.lr) + '\n'
+        if hasattr(opt, 'lr_decay_freq'):
             config_str += 'lr_decay_freq: ' + str(
-                self.opt.lr_decay_freq) + '\n'
-            config_str += 'lr_decay: ' + str(self.opt.lr_decay) + '\n'
-        if hasattr(self.opt, 'weight_decay'):
-            config_str += 'weight_decay: ' + str(self.opt.weight_decay) + '\n'
+                opt.lr_decay_freq) + '\n'
+            config_str += 'lr_decay: ' + str(opt.lr_decay) + '\n'
+        if hasattr(opt, 'weight_decay'):
+            config_str += 'weight_decay: ' + str(opt.weight_decay) + '\n'
 
         return config_str
 
     def save(self):
-        ''' save model, default name is net + time, such as net_0101_23:57:28.pth '''
-        if not os.path.exists(self.opt.save_file):
-            os.mkdir(self.opt.save_file)
-        prefix = os.path.join(self.opt.save_file, self.opt.model) + '_'
+        """ Save model, default name is net + time, such as net_0101_23:57:28.pth
+
+        """
+        if not os.path.exists(opt.save_file):
+            os.mkdir(opt.save_file)
+        prefix = os.path.join(opt.save_file, opt.model) + '_'
         name = time.strftime(prefix + '%m%d_%H:%M:%S.pth')
         if hasattr(self.model, 'module'):
             torch.save(self.model.module.state_dict(), name)
@@ -169,7 +177,7 @@ class Trainer(object):
         best_loss = 1e9
         for data in self.train_data:
             im, label = data
-            if torch.cuda.is_available() and self.opt.use_gpu:
+            if torch.cuda.is_available() and opt.use_gpu:
                 im = im.cuda()
                 label = label.cuda()
             im = Variable(im)
@@ -199,7 +207,8 @@ class Trainer(object):
 
 
 class ScheduledOptim(object):
-    '''A wrapper class for learning rate scheduling'''
+    """A wrapper class for learning rate scheduling
+    """
 
     def __init__(self, optimizer):
         self.optimizer = optimizer
