@@ -3,7 +3,6 @@ import os
 import time
 from datetime import datetime
 
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from config import opt
@@ -69,7 +68,7 @@ class Trainer(object):
             self.acc_meter.add(acc.data[0])
 
             # Update to tensorboard.
-            if self.n_iter % opt.plot_freq == 0:
+            if (self.n_iter + 1) % opt.plot_freq == 0:
                 self.writer.add_scalars('loss', {'train': self.loss_meter.value()[0]}, self.n_plot)
                 self.writer.add_scalars('acc', {'train': self.acc_meter.value()[0]}, self.n_plot)
                 self.n_plot += 1
@@ -169,6 +168,7 @@ class Trainer(object):
             torch.save(self.model.state_dict(), name)
 
     def find_lr(self, begin_lr=1e-5, end_lr=1.):
+        import matplotlib.pyplot as plt
         self.model.train()
         self.optimizer.set_learning_rate(begin_lr)
         lr_mult = (end_lr / begin_lr) ** (1. / 100)

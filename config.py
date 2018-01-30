@@ -19,9 +19,9 @@ class DefaultConfig(object):
     plot_freq = 100  # plot in tensorboard every N iterations
 
     # Model hyperparameters.
+    use_gpu = True  # use GPU or not
     ctx = 0  # running on which cuda device
     batch_size = 128  # batch size
-    use_gpu = True  # use GPU or not
     num_workers = 4  # how many workers for loading data
     max_epoch = 10
     lr = 0.1  # initial learning rate
