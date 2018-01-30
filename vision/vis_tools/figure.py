@@ -26,4 +26,4 @@ def fig4board(fig):
     ax = fig.get_figure()
     img_data = fig2data(ax).astype(np.uint8)
     plot.close()
-    return img_data[:, :, :3].transpose((2, 0, 1))
+    return img_data[:, :, :3]
