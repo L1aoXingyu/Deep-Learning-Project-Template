@@ -14,14 +14,23 @@ def fig2data(fig):
     fig.canvas.draw()
 
     w, h = fig.canvas.get_width_height()
-    buf = np.fromstring(fig.canvas.tostring_argb(), dtype=np.uint8)
+    buf = np.frombuffer(fig.canvas.tostring_argb(), dtype=np.uint8)
     buf.shape = (w, h, 4)
 
     buf = np.roll(buf, 3, axis=2)
     return buf.reshape(h, w, 4)
 
 
-def fig4board(fig):
+def fig2img(fig):
+    """Convert a Matplotlib figure to tensorbaord image, which is a 3D np.ndarray, shape is :math:`(height, width, 3)`.
+    This is in RGB format and the range of its value is :math:`[0, 255]`.
+
+    Args:
+        fig: Matplotlib figure
+
+    Returns:
+        a tensorboard image with shape :math:`(height, width, 3)`, value is :math:`[0, 255]`.
+    """
     from matplotlib import pyplot as plot
     ax = fig.get_figure()
     img_data = fig2data(ax).astype(np.uint8)

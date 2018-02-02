@@ -1,7 +1,7 @@
 __all__ = ['Trainer', 'ScheduledOptim']
 import os
 import time
-from datetime import datetime
+from collections import OrderedDict
 
 import numpy as np
 import torch
@@ -14,7 +14,7 @@ from . import meter
 
 
 class Trainer(object):
-    """ A base class for model training ane evaluating
+    """ Base class for all trainer.
 
     """
 
@@ -24,28 +24,34 @@ class Trainer(object):
                  model=None,
                  criterion=None,
                  optimizer=None):
+        self.train_data = train_data
+        self.test_data = test_data
         self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
-        self.train_data = train_data
-        self.test_data = test_data
+
         self.config = self.write_config()
         self.write_result = hasattr(opt, 'result_file')
 
-        self.loss_meter = meter.AverageValueMeter()
-        self.acc_meter = meter.AverageValueMeter()
+        # Set tensorboard configuration.
         if hasattr(opt, 'vis_dir'):
             vis_dir = opt.vis_dir
         else:
             vis_dir = './'
         self.writer = SummaryWriter(vis_dir)
-        self.n_iter = 0.
-        self.n_plot = 0.
+
+        # Set metrics save configuration.
+        self.metric_log = OrderedDict()
+
+        self.n_iter = 0
+        self.n_plot = 0
+
+        self.loss_meter = meter.AverageValueMeter()
+        self.acc_meter = meter.AverageValueMeter()
 
     def train(self):
-        """ Train a epoch in the whole train set
+        """ Train a epoch in the whole train set and update in metric dict.
 
-        :return (str): train describe
         """
         self.loss_meter.reset()
         self.acc_meter.reset()
@@ -73,18 +79,10 @@ class Trainer(object):
                 self.writer.add_scalars('acc', {'train': self.acc_meter.value()[0]}, self.n_plot)
                 self.n_plot += 1
             self.n_iter += 1
-            # if (i + 1) % self.opt.print_freq == 0:
-            #     epoch_str = (
-            #         '{}/{}, Train Loss: {:.4f}, Train Acc: {:.4f} '.format(
-            #             i + 1, len(self.train_data),
-            #             self.loss_meter.value()[0],
-            #             self.acc_meter.value()[0]))
-            #     print(epoch_str)
 
-        train_str = ('Train Loss: {:.4f}, Train Acc: {:.4f}'.format(
-            self.loss_meter.value()[0],
-            self.acc_meter.value()[0]))
-        return train_str
+        # Log the train metrics to dict.
+        self.metric_log['train loss'] = self.loss_meter.value()[0]
+        self.metric_log['train acc'] = self.acc_meter.value()[0]
 
     def test(self):
         self.loss_meter.reset()
@@ -106,10 +104,11 @@ class Trainer(object):
         # Add to tensorboard.
         self.writer.add_scalars('loss', {'eval': self.loss_meter.value()[0]}, self.n_plot)
         self.writer.add_scalars('acc', {'test': self.acc_meter.value()[0]}, self.n_plot)
-        test_str = ('Test Loss: {:.4f}, Test Acc: {:.4f}'.format(
-            self.loss_meter.value()[0],
-            self.acc_meter.value()[0]))
-        return test_str
+        self.n_plot += 1
+
+        # Log the test metrics to dict.
+        self.metric_log['test loss'] = self.loss_meter.value()[0]
+        self.metric_log['test acc'] = self.loss_meter.value()[0]
 
     def fit(self):
         if self.write_result:
@@ -119,25 +118,30 @@ class Trainer(object):
             if hasattr(opt, 'lr_decay_freq') and hasattr(
                     opt, 'lr_decay') and e % opt.lr_decay_freq == 0:
                 self.optimizer.lr_multi(opt.lr_decay)
-            prev_time = datetime.now()
-            train_str = self.train()
-            test_str = self.test()
-            cur_time = datetime.now()
-            h, remainder = divmod((cur_time - prev_time).seconds, 3600)
-            m, s = divmod(remainder, 60)
-            time_str = (' Time: {:.0f}:{:.0f}:{:.0f}'.format(h, m, s))
-            epoch_str = ('Epoch: {}, '.format(e) + train_str + ', ' + test_str +
-                         ', lr: {:.1e}'.format(self.optimizer.learning_rate) +
-                         ',' + time_str)
-            print(epoch_str)
-            print()
-            if self.write_result:
-                with open(opt.result_file, 'a') as f:
-                    f.write(epoch_str + '\n')
+
+            self.train()
+            self.test()
+
+            self.print_config(e)
+
+            # save model
             if e % opt.save_freq == 0:
                 self.save()
 
-    def write_config(self):
+    def print_config(self, epoch):
+        epoch_str = 'Epoch: {}, '.format(epoch)
+        for m, v in self.metric_log.items():
+            epoch_str += (m + ': ')
+            epoch_str += '{:.4f}, '.format(v)
+        epoch_str += 'lr: {:.1e}'.format(self.optimizer.learning_rate)
+        print(epoch_str)
+        print()
+        if self.write_result:
+            with open(opt.result_file, 'a') as f:
+                f.write(epoch_str + '\n')
+
+    @staticmethod
+    def write_config():
         config_str = 'Configure: \n'
         if hasattr(opt, 'model'):
             config_str += 'model: ' + str(opt.model) + '\n'
@@ -151,7 +155,6 @@ class Trainer(object):
             config_str += 'lr_decay: ' + str(opt.lr_decay) + '\n'
         if hasattr(opt, 'weight_decay'):
             config_str += 'weight_decay: ' + str(opt.weight_decay) + '\n'
-
         return config_str
 
     def save(self):

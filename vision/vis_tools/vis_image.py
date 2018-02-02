@@ -24,3 +24,24 @@ def vis_image(img, ax=None):
     img = img.transpose((1, 2, 0))
     ax.imshow(img.astype(np.uint8))
     return ax
+
+
+def vis_mat(img, ax=None):
+    """Visualize a density map image.
+
+    Args:
+        img (~numpy.ndarray): An array of shape :math:`(height, width)`.
+            This is a density map and the range of its value is :math:`[-inf, inf]`.
+        ax: (matplotlib.axes.Axis): The vis_tools is displayed on this
+            axis. If this is :obj:`None` (default), a new axis is created.
+
+    Returns:
+         ~matploblib.axes.Axes:
+        Returns the Axes object with the plot for further tweaking.
+    """
+    from matplotlib import pyplot as plt
+    if ax is None:
+        fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1)
+    ax.matshow(img)
+    return ax
