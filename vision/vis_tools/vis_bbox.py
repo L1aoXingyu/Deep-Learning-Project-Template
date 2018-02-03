@@ -57,7 +57,7 @@ def vis_bbox(img, bbox, label=None, score=None, label_names=None, ax=None):
         height = bb[2] - bb[0]
         width = bb[3] - bb[1]
         ax.add_patch(plot.Rectangle(
-            xy, width, height, fill=False, edgecolor='red', linewidth=3))
+            xy, width, height, fill=False, edgecolor='red', linewidth=2))
 
         caption = list()
 
@@ -74,5 +74,5 @@ def vis_bbox(img, bbox, label=None, score=None, label_names=None, ax=None):
             ax.text(bb[1], bb[0],
                     ': '.join(caption),
                     style='italic',
-                    bbox={'facecolor': 'white', 'alpha': 0.7, 'pad': 10})
+                    bbox={'facecolor': 'white', 'alpha': 0.7, 'pad': 3})
     return ax

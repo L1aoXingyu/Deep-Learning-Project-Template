@@ -1,11 +1,8 @@
-# MxTorch
-My own deep learning lib based on PyToch, learned from MxNet/Gluon and Chainer.
-
-## Example
-
-Classification Network Example
-
-```python
+# encoding: utf-8
+"""
+@author: xyliao
+@contact: xyliao1993@qq.com
+"""
 import torch
 from config import opt
 from mxtorch import meter
@@ -105,6 +102,3 @@ class ModelTrainer(Trainer):
 
 model_trainer = ModelTrainer()
 model_trainer.fit()
-
-```
-

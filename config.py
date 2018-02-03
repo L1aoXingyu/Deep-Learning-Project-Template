@@ -10,12 +10,12 @@ class DefaultConfig(object):
     test_data_path = './data/test/'
 
     # Store result and save models.
-    result_file = 'test.txt'
+    result_file = 'result.txt'
     save_file = './checkpoints/'
     save_freq = 30  # save model every N epochs
 
     # Visualization parameters.
-    vis_dir = './test_vis/'
+    vis_dir = './vis/'
     plot_freq = 100  # plot in tensorboard every N iterations
 
     # Model hyperparameters.

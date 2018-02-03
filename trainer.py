@@ -8,14 +8,12 @@ import torch
 from config import opt
 from tensorboardX import SummaryWriter
 from torch.autograd import Variable
-from tqdm import tqdm
-
-from . import meter
 
 
 class Trainer(object):
-    """ Base class for all trainer.
+    """Base class for all trainer.
 
+    Your model trainer should also subclass this class.
     """
 
     def __init__(self,
@@ -35,80 +33,26 @@ class Trainer(object):
 
         # Set tensorboard configuration.
         if hasattr(opt, 'vis_dir'):
-            vis_dir = opt.vis_dir
-        else:
-            vis_dir = './'
-        self.writer = SummaryWriter(vis_dir)
+            self.writer = SummaryWriter(opt.vis_dir)
 
-        # Set metrics save configuration.
+        # Set metrics meter log configuration.
         self.metric_log = OrderedDict()
+        self.metric_meter = OrderedDict()
 
         self.n_iter = 0
         self.n_plot = 0
 
-        self.loss_meter = meter.AverageValueMeter()
-        self.acc_meter = meter.AverageValueMeter()
-
     def train(self):
-        """ Train a epoch in the whole train set and update in metric dict.
-
+        """Train a epoch in the whole train set, update in metric dict and tensorboard.
+                Should be overriden by all subclasses.
         """
-        self.loss_meter.reset()
-        self.acc_meter.reset()
-        self.model.train()
-        for data in tqdm(self.train_data):
-            im, label = data
-            if torch.cuda.is_available() and opt.use_gpu:
-                im = im.cuda(opt.ctx)
-                label = label.cuda(self.opt.ctx)
-            im = Variable(im)
-            label = Variable(label)
-            score = self.model(im)
-            loss = self.criterion(score, label)
-            self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
-            # Update meter.
-            self.loss_meter.add(loss.data[0])
-            acc = (score.max(1)[1] == label).type(torch.FloatTensor).mean()
-            self.acc_meter.add(acc.data[0])
-
-            # Update to tensorboard.
-            if (self.n_iter + 1) % opt.plot_freq == 0:
-                self.writer.add_scalars('loss', {'train': self.loss_meter.value()[0]}, self.n_plot)
-                self.writer.add_scalars('acc', {'train': self.acc_meter.value()[0]}, self.n_plot)
-                self.n_plot += 1
-            self.n_iter += 1
-
-        # Log the train metrics to dict.
-        self.metric_log['train loss'] = self.loss_meter.value()[0]
-        self.metric_log['train acc'] = self.acc_meter.value()[0]
+        raise NotImplementedError
 
     def test(self):
-        self.loss_meter.reset()
-        self.acc_meter.reset()
-        self.model.eval()
-        for data in tqdm(self.test_data):
-            im, label = data
-            if torch.cuda.is_available() and opt.use_gpu:
-                im = im.cuda(opt.ctx)
-                label = label.cuda(opt.ctx)
-            im = Variable(im, volatile=True)
-            label = Variable(label, volatile=True)
-            score = self.model(im)
-            loss = self.criterion(score, label)
-            self.loss_meter.add(loss.data[0])
-            acc = (score.max(1)[1] == label).type(torch.FloatTensor).mean()
-            self.acc_meter.add(acc.data[0])
-
-        # Add to tensorboard.
-        self.writer.add_scalars('loss', {'eval': self.loss_meter.value()[0]}, self.n_plot)
-        self.writer.add_scalars('acc', {'test': self.acc_meter.value()[0]}, self.n_plot)
-        self.n_plot += 1
-
-        # Log the test metrics to dict.
-        self.metric_log['test loss'] = self.loss_meter.value()[0]
-        self.metric_log['test acc'] = self.loss_meter.value()[0]
+        """Test model in test set, update in metric dict and tensorboard.
+                Should be overriden by all subclasses.
+        """
+        raise NotImplementedError
 
     def fit(self):
         if self.write_result:
@@ -119,14 +63,31 @@ class Trainer(object):
                     opt, 'lr_decay') and e % opt.lr_decay_freq == 0:
                 self.optimizer.lr_multi(opt.lr_decay)
 
+            # Train model on train dataset.
+            self.model.train()
+            self.reset_meter()
             self.train()
-            self.test()
 
+            # Evaluate model on test dataset.
+            try:
+                self.model.eval()
+                self.reset_meter()
+                self.test()
+            except NotImplementedError:
+                print('No test data!')
+
+            # Print metric log on screen and write out metric in result file.
             self.print_config(e)
 
-            # save model
-            if e % opt.save_freq == 0:
-                self.save()
+            # Save model.
+            if hasattr(opt, 'save_freq') and hasattr(opt, 'save_file'):
+                if e % opt.save_freq == 0:
+                    # TODO: add metric to save name.
+                    self.save()
+
+    def reset_meter(self):
+        for k, v in self.metric_meter.items():
+            v.reset()
 
     def print_config(self, epoch):
         epoch_str = 'Epoch: {}, '.format(epoch)
@@ -158,7 +119,7 @@ class Trainer(object):
         return config_str
 
     def save(self):
-        """ Save model, default name is net + time, such as net_0101_23:57:28.pth
+        """Save model, default name is net + time, such as net_0101_23:57:28.pth
 
         """
         if not os.path.exists(opt.save_file):
