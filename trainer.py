@@ -6,8 +6,6 @@ from collections import OrderedDict
 import numpy as np
 import torch
 from config import opt
-from tensorboardX import SummaryWriter
-from torch.autograd import Variable
 
 
 class Trainer(object):
@@ -17,22 +15,18 @@ class Trainer(object):
     """
 
     def __init__(self,
-                 train_data=None,
-                 test_data=None,
                  model=None,
                  criterion=None,
                  optimizer=None):
-        self.train_data = train_data
-        self.test_data = test_data
         self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
 
         self.config = self.write_config()
-        self.write_result = hasattr(opt, 'result_file')
 
         # Set tensorboard configuration.
         if hasattr(opt, 'vis_dir'):
+            from tensorboardX import SummaryWriter
             self.writer = SummaryWriter(opt.vis_dir)
 
         # Set metrics meter log configuration.
@@ -42,20 +36,23 @@ class Trainer(object):
         self.n_iter = 0
         self.n_plot = 0
 
-    def train(self):
+        self.best_model = None
+        self.best_metric = 1e9
+
+    def train(self, kwargs):
         """Train a epoch in the whole train set, update in metric dict and tensorboard.
-                Should be overriden by all subclasses.
+
         """
         raise NotImplementedError
 
-    def test(self):
+    def test(self, kwargs):
         """Test model in test set, update in metric dict and tensorboard.
                 Should be overriden by all subclasses.
         """
         raise NotImplementedError
 
-    def fit(self):
-        if self.write_result:
+    def fit(self, **kwargs):
+        if hasattr(opt, 'result_file'):
             with open(opt.result_file, 'a') as f:
                 f.write(self.config + '\n')
         for e in range(1, opt.max_epoch + 1):
@@ -64,26 +61,41 @@ class Trainer(object):
                 self.optimizer.lr_multi(opt.lr_decay)
 
             # Train model on train dataset.
-            self.model.train()
             self.reset_meter()
-            self.train()
+            self.train(kwargs)
 
             # Evaluate model on test dataset.
             try:
-                self.model.eval()
                 self.reset_meter()
-                self.test()
+                self.test(kwargs)
             except NotImplementedError:
                 print('No test data!')
 
             # Print metric log on screen and write out metric in result file.
             self.print_config(e)
 
-            # Save model.
+            # Save model every N epochs.
             if hasattr(opt, 'save_freq') and hasattr(opt, 'save_file'):
+                if opt.save_best:
+                    try:
+                        self.get_best_model()
+                    except NotImplementedError:
+                        print('You need to implement get_best_model!')
                 if e % opt.save_freq == 0:
                     # TODO: add metric to save name.
                     self.save()
+
+        if hasattr(opt, 'save_best'):
+            if opt.save_best and (self.best_model is not None):
+                prefix = os.path.join(opt.save_file, opt.model) + '_'
+                name = prefix + 'best_model.pth'
+                if not os.path.exists(opt.save_file):
+                    os.mkdir(opt.save_file)
+                torch.save(self.best_model, name)
+            else:
+                print('do not save best model!')
+        else:
+            print('do not save best model!')
 
     def reset_meter(self):
         for k, v in self.metric_meter.items():
@@ -97,7 +109,7 @@ class Trainer(object):
         epoch_str += 'lr: {:.1e}'.format(self.optimizer.learning_rate)
         print(epoch_str)
         print()
-        if self.write_result:
+        if hasattr(opt, 'result_file'):
             with open(opt.result_file, 'a') as f:
                 f.write(epoch_str + '\n')
 
@@ -131,39 +143,57 @@ class Trainer(object):
         else:
             torch.save(self.model.state_dict(), name)
 
-    def find_lr(self, begin_lr=1e-5, end_lr=1.):
+    def get_best_model(self):
+        raise NotImplementedError
+
+    def find_lr_step(self, data):
+        """This is using for find best learning rate, and it's optional.
+                If your network is not standard, you need to ovride this subclasses.
+
+        Returns:
+            it should return a loss(~torch.autograd.Variable).
+        """
+        img, label = data
+        if opt.use_gpu:
+            img = img.cuda(opt.ctx)
+            label = label.cuda(opt.ctx)
+        img = torch.autograd.Variable(img)
+        label = torch.autograd.Variable(label)
+        score = self.model(img)
+        loss = self.criterion(score, label)
+        return loss
+
+    def find_lr(self, train_data, begin_lr=1e-5, end_lr=1.):
         import matplotlib.pyplot as plt
         self.model.train()
         self.optimizer.set_learning_rate(begin_lr)
         lr_mult = (end_lr / begin_lr) ** (1. / 100)
-        lr = []
-        losses = []
+        lr = list()
+        losses = list()
+        x_ticks = list()
         best_loss = 1e9
-        for data in self.train_data:
-            im, label = data
-            if torch.cuda.is_available() and opt.use_gpu:
-                im = im.cuda()
-                label = label.cuda()
-            im = Variable(im)
-            label = Variable(label)
-            # forward
-            score = self.model(im)
-            loss = self.criterion(score, label)
-            # backward
-            self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
+        for data in train_data:
+
+            loss = self.find_lr_step(data)
+
             lr.append(self.optimizer.learning_rate)
             losses.append(loss.data[0])
-            self.optimizer.multi(lr_mult)
+            self.optimizer.lr_multi(lr_mult)
             if loss.data[0] < best_loss:
                 best_loss = loss.data[0]
             if loss.data[0] > 3 * best_loss or self.optimizer.learning_rate > 1.:
                 break
         plt.figure()
+        end_lr = self.optimizer.learning_rate
+        lr_now = begin_lr
+        while True:
+            if lr_now <= end_lr:
+                x_ticks.append(lr_now)
+                lr_now *= 10
+            else:
+                break
         plt.xticks(
-            np.log([1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1]),
-            (1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1))
+            np.log(x_ticks), x_ticks)
         plt.xlabel('learning rate')
         plt.ylabel('loss')
         plt.plot(np.log(lr), losses)

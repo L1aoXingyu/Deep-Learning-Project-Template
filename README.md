@@ -36,26 +36,24 @@ def get_optimizer(model):
 
 class ModelTrainer(Trainer):
     def __init__(self):
-        train_data = get_train_data()
-        test_data = get_test_data()
         model = get_model()
         criterion = get_criterion()
         optimizer = get_optimizer(model)
 
-        super().__init__(train_data, test_data, model, criterion, optimizer)
+        super().__init__(model, criterion, optimizer)
 
         self.metric_meter['loss'] = meter.AverageValueMeter()
         self.metric_meter['acc'] = meter.AverageValueMeter()
 
-    def train(self):
-        for data in tqdm(self.train_data):
-            im, label = data
+    def train(self, train_data):
+        for data in tqdm(train_data):
+            img, label = data
             if torch.cuda.is_available() and opt.use_gpu:
-                im = im.cuda(opt.ctx)
-                label = label.cuda(self.opt.ctx)
-            im = Variable(im)
+                img = img.cuda(opt.ctx)
+                label = label.cuda(opt.ctx)
+            img = Variable(img)
             label = Variable(label)
-            score = self.model(im)
+            score = self.model(img)
             loss = self.criterion(score, label)
             self.optimizer.zero_grad()
             loss.backward()
@@ -77,15 +75,15 @@ class ModelTrainer(Trainer):
         self.metric_log['train loss'] = self.metric_meter['loss'].value()[0]
         self.metric_log['train acc'] = self.metric_meter['acc'].value()[0]
 
-    def test(self):
-        for data in tqdm(self.test_data):
-            im, label = data
+    def test(self, test_data):
+        for data in tqdm(test_data):
+            img, label = data
             if torch.cuda.is_available() and opt.use_gpu:
-                im = im.cuda(opt.ctx)
+                img = img.cuda(opt.ctx)
                 label = label.cuda(opt.ctx)
-            im = Variable(im, volatile=True)
+            img = Variable(img, volatile=True)
             label = Variable(label, volatile=True)
-            score = self.model(im)
+            score = self.model(img)
             loss = self.criterion(score, label)
 
             # Update meter.
@@ -103,8 +101,20 @@ class ModelTrainer(Trainer):
         self.metric_log['test acc'] = self.metric_meter['acc'].value()[0]
 
 
-model_trainer = ModelTrainer()
-model_trainer.fit()
+def train(**kwargs):
+    opt._parse(kwargs)
 
+    # Get train data and test data.
+    train_data = get_train_data()
+    test_data = get_test_data()
+    model_trainer = ModelTrainer()
+
+    model_trainer.fit(train_data, test_data)
+
+
+if __name__ == '__main__':
+    import fire
+
+    fire.Fire()
 ```
 

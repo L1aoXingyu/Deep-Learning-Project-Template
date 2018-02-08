@@ -13,6 +13,7 @@ class DefaultConfig(object):
     result_file = 'result.txt'
     save_file = './checkpoints/'
     save_freq = 30  # save model every N epochs
+    save_best = False  # If save best test metric model.
 
     # Visualization parameters.
     vis_dir = './vis/'
