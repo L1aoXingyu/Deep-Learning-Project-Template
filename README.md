@@ -6,6 +6,8 @@ My own deep learning lib based on PyToch, learned from MxNet/Gluon and Chainer.
 Classification Network Example
 
 ```python
+from copy import deepcopy
+
 import torch
 from config import opt
 from mxtorch import meter
@@ -45,7 +47,9 @@ class ModelTrainer(Trainer):
         self.metric_meter['loss'] = meter.AverageValueMeter()
         self.metric_meter['acc'] = meter.AverageValueMeter()
 
-    def train(self, train_data):
+    def train(self, kwargs):
+        self.model.train()
+        train_data = kwargs['train_data']
         for data in tqdm(train_data):
             img, label = data
             if torch.cuda.is_available() and opt.use_gpu:
@@ -69,13 +73,15 @@ class ModelTrainer(Trainer):
                 self.writer.add_scalars('loss', {'train': self.metric_meter['loss'].value()[0]}, self.n_plot)
                 self.writer.add_scalars('acc', {'train': self.metric_log['acc'].value()[0]}, self.n_plot)
                 self.n_plot += 1
-                self.n_iter += 1
+            self.n_iter += 1
 
         # Log the train metrics to dict.
         self.metric_log['train loss'] = self.metric_meter['loss'].value()[0]
         self.metric_log['train acc'] = self.metric_meter['acc'].value()[0]
 
-    def test(self, test_data):
+    def test(self, kwargs):
+        self.model.eval()
+        test_data = kwargs['test_data']
         for data in tqdm(test_data):
             img, label = data
             if torch.cuda.is_available() and opt.use_gpu:
@@ -100,6 +106,11 @@ class ModelTrainer(Trainer):
         self.metric_log['test loss'] = self.metric_meter['loss'].value()[0]
         self.metric_log['test acc'] = self.metric_meter['acc'].value()[0]
 
+    def get_best_model(self):
+        if self.metric_log['test loss'] < self.best_metric:
+            self.best_model = deepcopy(self.model.state_dict())
+            self.best_metric = self.metric_log['test loss']
+
 
 def train(**kwargs):
     opt._parse(kwargs)
@@ -109,12 +120,13 @@ def train(**kwargs):
     test_data = get_test_data()
     model_trainer = ModelTrainer()
 
-    model_trainer.fit(train_data, test_data)
+    model_trainer.fit(train_data=train_data, test_data=test_data)
 
 
 if __name__ == '__main__':
     import fire
 
     fire.Fire()
+
 ```
 
