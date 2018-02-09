@@ -29,7 +29,7 @@ def get_criterion():
     pass
 
 
-def get_optimizer(model):
+def get_optimizer():
     pass
 
 
@@ -37,7 +37,7 @@ class ModelTrainer(Trainer):
     def __init__(self):
         model = get_model()
         criterion = get_criterion()
-        optimizer = get_optimizer(model)
+        optimizer = get_optimizer()
 
         super().__init__(model, criterion, optimizer)
 
