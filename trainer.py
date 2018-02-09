@@ -5,7 +5,7 @@ from collections import OrderedDict
 
 import numpy as np
 import torch
-from config import opt
+from .config import opt
 
 
 class Trainer(object):
