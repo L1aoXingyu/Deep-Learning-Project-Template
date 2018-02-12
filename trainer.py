@@ -76,7 +76,7 @@ class Trainer(object):
 
             # Save model every N epochs.
             if hasattr(opt, 'save_freq') and hasattr(opt, 'save_file'):
-                if opt.save_best:
+                if hasattr(opt, 'save_best') and opt.save_best:
                     try:
                         self.get_best_model()
                     except NotImplementedError:
@@ -85,15 +85,12 @@ class Trainer(object):
                     # TODO: add metric to save name.
                     self.save()
 
-        if hasattr(opt, 'save_best'):
-            if opt.save_best and (self.best_model is not None):
-                prefix = os.path.join(opt.save_file, opt.model) + '_'
-                name = prefix + 'best_model.pth'
-                if not os.path.exists(opt.save_file):
-                    os.mkdir(opt.save_file)
-                torch.save(self.best_model, name)
-            else:
-                print('do not save best model!')
+        if hasattr(opt, 'save_best') and opt.save_best and (self.best_model is not None):
+            prefix = os.path.join(opt.save_file, opt.model) + '_'
+            name = prefix + 'best_model.pth'
+            if not os.path.exists(opt.save_file):
+                os.mkdir(opt.save_file)
+            torch.save(self.best_model, name)
         else:
             print('do not save best model!')
 
