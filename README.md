@@ -130,3 +130,8 @@ if __name__ == '__main__':
 
 ```
 
+### TODO
+
+- [ ] Change PIL to scikit-image (opencv)
+- [ ] Add ONNX, transfer PyTorch model to caffe2 model
+- [ ] Add Flask server
