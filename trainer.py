@@ -55,7 +55,13 @@ class Trainer(object):
         if hasattr(opt, 'result_file'):
             with open(opt.result_file, 'a') as f:
                 f.write(self.config + '\n')
-        for e in range(1, opt.max_epoch + 1):
+
+        if 'epochs' in kwargs:
+            max_epochs = kwargs['epochs']
+        else:
+            max_epochs = opt.max_epoch
+
+        for e in range(1, max_epochs + 1):
             if hasattr(opt, 'lr_decay_freq') and hasattr(
                     opt, 'lr_decay') and e % opt.lr_decay_freq == 0:
                 self.optimizer.lr_multi(opt.lr_decay)
@@ -152,8 +158,8 @@ class Trainer(object):
         """
         img, label = data
         if opt.use_gpu:
-            img = img.cuda(opt.ctx)
-            label = label.cuda(opt.ctx)
+            img = img.cuda()
+            label = label.cuda()
         img = torch.autograd.Variable(img)
         label = torch.autograd.Variable(label)
         score = self.model(img)
