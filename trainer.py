@@ -67,12 +67,10 @@ class Trainer(object):
                 self.optimizer.lr_multi(opt.lr_decay)
 
             # Train model on train dataset.
-            self.reset_meter()
             self.train(kwargs)
 
             # Evaluate model on test dataset.
             try:
-                self.reset_meter()
                 self.test(kwargs)
             except NotImplementedError:
                 print('No test data!')

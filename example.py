@@ -45,6 +45,7 @@ class ModelTrainer(Trainer):
         self.metric_meter['acc'] = meter.AverageValueMeter()
 
     def train(self, kwargs):
+        self.reset_meter()
         self.model.train()
         train_data = kwargs['train_data']
         for data in tqdm(train_data):
@@ -77,6 +78,7 @@ class ModelTrainer(Trainer):
         self.metric_log['train acc'] = self.metric_meter['acc'].value()[0]
 
     def test(self, kwargs):
+        self.reset_meter()
         self.model.eval()
         test_data = kwargs['test_data']
         for data in tqdm(test_data):
