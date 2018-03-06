@@ -1,19 +1,17 @@
 from __future__ import division
-import numpy as np
+
 import torch
-from mxnet import nd
-import math
-import random
 from PIL import Image, ImageOps, ImageEnhance
+
+# from mxnet import nd
+
 try:
     import accimage
 except ImportError:
     accimage = None
 import numpy as np
 import numbers
-import types
 import collections
-import warnings
 
 
 def _is_pil_image(img):
@@ -27,8 +25,8 @@ def _is_tensor_image(img):
     return torch.is_tensor(img) and img.ndimension() == 3
 
 
-def _is_ndarray_image(img):
-    return isinstance(img, nd.NDArray) and img.ndim == 3
+# def _is_ndarray_image(img):
+#     return isinstance(img, nd.NDArray) and img.ndim == 3
 
 
 def _is_numpy_image(img):
@@ -83,49 +81,49 @@ def to_tensor(pic):
         return img
 
 
-def to_array(pic):
-    """Convert a ``PIL Image`` or ``numpy.ndarray`` to nd.array.
-    See ``ToArray`` for more details.
-    Args:
-        pic (PIL Image or numpy.ndarray): Image to be converted to nd.array.
-    Returns:
-        Array: Converted image.
-    """
-    if not (_is_pil_image(pic) or _is_numpy_image(pic)):
-        raise TypeError('pic should be PIL Image or ndarray. Got {}'.format(
-            type(pic)))
-
-    if isinstance(pic, np.ndarray):
-        # handle numpy array
-        img = nd.array(pic.transpose((2, 0, 1)))
-        # backward compatibility
-        return img.astype(np.float32) / 255
-
-    if accimage is not None and isinstance(pic, accimage.Image):
-        nppic = np.zeros(
-            [pic.channels, pic.height, pic.width], dtype=np.float32)
-        pic.copyto(nppic)
-        return nd.array(nppic)
-
-    # handle PIL Image
-    if pic.mode == 'I':
-        img = nd.array(pic, dtype=np.int32)
-    elif pic.mode == 'I;16':
-        img = nd.array(pic, dtype=np.int16)
-    else:
-        img = nd.array(pic, dtype=np.float32)
-    # PIL image mode: 1, L, P, I, F, RGB, YCbCr, RGBA, CMYK
-    if pic.mode == 'YCbCr':
-        nchannel = 3
-    elif pic.mode == 'I;16':
-        nchannel = 1
-    else:
-        nchannel = len(pic.mode)
-    img = img.reshape((img.shape[0], img.shape[1], nchannel))
-    # put it from HWC to CHW format
-    # yikes, this transpose takes 80% of the loading time/CPU
-    img = img.transpose((2, 0, 1))
-    return img.astype(np.float32) / 255
+# def to_array(pic):
+#     """Convert a ``PIL Image`` or ``numpy.ndarray`` to nd.array.
+#     See ``ToArray`` for more details.
+#     Args:
+#         pic (PIL Image or numpy.ndarray): Image to be converted to nd.array.
+#     Returns:
+#         Array: Converted image.
+#     """
+#     if not (_is_pil_image(pic) or _is_numpy_image(pic)):
+#         raise TypeError('pic should be PIL Image or ndarray. Got {}'.format(
+#             type(pic)))
+#
+#     if isinstance(pic, np.ndarray):
+#         # handle numpy array
+#         img = nd.array(pic.transpose((2, 0, 1)))
+#         # backward compatibility
+#         return img.astype(np.float32) / 255
+#
+#     if accimage is not None and isinstance(pic, accimage.Image):
+#         nppic = np.zeros(
+#             [pic.channels, pic.height, pic.width], dtype=np.float32)
+#         pic.copyto(nppic)
+#         return nd.array(nppic)
+#
+#     # handle PIL Image
+#     if pic.mode == 'I':
+#         img = nd.array(pic, dtype=np.int32)
+#     elif pic.mode == 'I;16':
+#         img = nd.array(pic, dtype=np.int16)
+#     else:
+#         img = nd.array(pic, dtype=np.float32)
+#     # PIL image mode: 1, L, P, I, F, RGB, YCbCr, RGBA, CMYK
+#     if pic.mode == 'YCbCr':
+#         nchannel = 3
+#     elif pic.mode == 'I;16':
+#         nchannel = 1
+#     else:
+#         nchannel = len(pic.mode)
+#     img = img.reshape((img.shape[0], img.shape[1], nchannel))
+#     # put it from HWC to CHW format
+#     # yikes, this transpose takes 80% of the loading time/CPU
+#     img = img.transpose((2, 0, 1))
+#     return img.astype(np.float32) / 255
 
 
 def to_pil_image(pic, mode=None):
@@ -166,7 +164,7 @@ def to_pil_image(pic, mode=None):
         if mode is not None and mode != expected_mode:
             raise ValueError(
                 "Incorrect mode ({}) supplied for input type {}. Should be {}"
-                .format(mode, np.dtype, expected_mode))
+                    .format(mode, np.dtype, expected_mode))
         mode = expected_mode
 
     elif npimg.shape[2] == 4:
@@ -537,7 +535,7 @@ def adjust_gamma(img, gamma, gain=1):
     img = img.convert('RGB')
 
     np_img = np.array(img, dtype=np.float32)
-    np_img = 255 * gain * ((np_img / 255)**gamma)
+    np_img = 255 * gain * ((np_img / 255) ** gamma)
     np_img = np.uint8(np.clip(np_img, 0, 255))
 
     img = Image.fromarray(np_img, 'RGB').convert(input_mode)
