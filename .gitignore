@@ -4,3 +4,4 @@ __pycache__
 .idea
 .pypirc
 dist
+torchlib.egg-info

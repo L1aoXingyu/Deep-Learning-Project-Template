@@ -29,7 +29,7 @@ def ifnone(a: Any, b: Any) -> Any:
 
 
 class Lambda(Module):
-    "An easy way to create a pytorch layer for a simple `func`."
+    """An easy way to create a pytorch layer for a simple `func`."""
 
     def __init__(self, func: LambdaFunc):
         "create a layer that simply calls `func` with `x`"
@@ -40,7 +40,7 @@ class Lambda(Module):
 
 
 def ResizeBatch(*size: int) -> Tensor:
-    "Layer that resizes x to `size`, good for connecting mismatched layers."
+    """Layer that resizes x to `size`, good for connecting mismatched layers."""
     return Lambda(lambda x: x.view((-1,) + size))
 
 
@@ -109,7 +109,7 @@ class AdaptiveConcatPool2d(Module):
     "Layer that concats `AdaptiveAvgPool2d` and `AdaptiveMaxPool2d`."
 
     def __init__(self, sz: Optional[int] = None):
-        "Output will be 2*sz or 2 if sz is None"
+        """Output will be 2*sz or 2 if sz is None"""
         super().__init__()
         sz = sz or 1
         self.ap, self.mp = AdaptiveAvgPool2d(sz), AdaptiveMaxPool2d(sz)
@@ -118,7 +118,7 @@ class AdaptiveConcatPool2d(Module):
 
 
 class Debugger(Module):
-    "A module to debug inside a model."
+    """"A module to debug inside a model."""
 
     def forward(self, x: Tensor) -> Tensor:
         embed()
