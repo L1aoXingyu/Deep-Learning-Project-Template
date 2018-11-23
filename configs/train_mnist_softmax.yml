@@ -1,0 +1,10 @@
+
+SOLVER:
+  BASE_LR: 0.01
+  WEIGHT_DECAY: 0.0001
+  IMS_PER_BATCH: 128
+
+TEST:
+  IMS_PER_BATCH: 256
+
+OUTPUT_DIR: "/mnt/truenas/scratch/xingyu.liao/checkpoints/mnist_template"
