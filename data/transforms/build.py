@@ -4,25 +4,25 @@
 @contact: sherlockliao01@gmail.com
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import torchvision.transforms as T
+
+from .transforms import RandomErasing
 
 
 def build_transforms(cfg, is_train=True):
-    normalize_transform = T.Normalize(mean=(0.1307,), std=(0.3081,))
+    normalize_transform = T.Normalize(mean=cfg.INPUT.PIXEL_MEAN, std=cfg.INPUT.PIXEL_STD)
     if is_train:
         transform = T.Compose([
-            T.RandomResizedCrop(size=cfg.TRANSFORMS.SIZE, scale=(cfg.TRANSFORMS.MIN_SCALE, cfg.TRANSFORMS.MAX_SCALE)),
-            T.RandomHorizontalFlip(p=cfg.TRANSFORMS.PROB),
+            T.RandomResizedCrop(size=cfg.INPUT.SIZE_TRAIN,
+                                scale=(cfg.INPUT.MIN_SCALE_TRAIN, cfg.INPUT.MAX_SCALE_TRAIN)),
+            T.RandomHorizontalFlip(p=cfg.INPUT.PROB),
             T.ToTensor(),
-            normalize_transform
+            normalize_transform,
+            RandomErasing(probability=cfg.INPUT.PROB, mean=cfg.INPUT.PIXEL_MEAN)
         ])
     else:
         transform = T.Compose([
+            T.Resize(cfg.INPUT.SIZE_TEST),
             T.ToTensor(),
             normalize_transform
         ])

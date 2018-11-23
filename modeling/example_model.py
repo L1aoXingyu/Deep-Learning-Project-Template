@@ -4,11 +4,6 @@
 @contact: sherlockliao01@gmail.com
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import numpy as np
 import torch.nn.functional as F
 from torch import nn
@@ -55,7 +50,7 @@ class ResNet18(nn.Module):
         super(ResNet18, self).__init__()
         self.in_planes = 16
 
-        self.conv1 = conv3x3(3, 16)
+        self.conv1 = conv3x3(1, 16)
         self.bn1 = nn.BatchNorm2d(16)
         self.layer1 = self._make_layer(BasicBlock, 16, 2, stride=1)
         self.layer2 = self._make_layer(BasicBlock, 32, 2, stride=2)

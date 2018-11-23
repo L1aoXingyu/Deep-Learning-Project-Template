@@ -4,11 +4,6 @@
 @contact: sherlockliao01@gmail.com
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from torch.utils import data
 
 from .datasets.mnist import MNIST
@@ -22,10 +17,10 @@ def build_dataset(transforms, is_train=True):
 
 def make_data_loader(cfg, is_train=True):
     if is_train:
-        batch_size = cfg.DATALOADER.TRAIN_BATCH_SIZE
+        batch_size = cfg.SOLVER.IMS_PER_BATCH
         shuffle = True
     else:
-        batch_size = cfg.DATALOADER.VAL_BATCH_SIZE
+        batch_size = cfg.TEST.IMS_PER_BATCH
         shuffle = False
 
     transforms = build_transforms(cfg, is_train)
