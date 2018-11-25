@@ -44,12 +44,12 @@ def train(cfg):
         val_loader,
         optimizer,
         None,
-        None,
         F.cross_entropy,
         device,
         checkpoint_period,
         log_period,
         epochs,
+        output_dir,
     )
 
 
