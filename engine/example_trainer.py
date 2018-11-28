@@ -8,22 +8,24 @@ import logging
 
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.handlers import ModelCheckpoint, Timer
-from ignite.metrics import Accuracy, Loss
+from ignite.metrics import Accuracy, Loss, RunningAverage
 
 
 def do_train(
+        cfg,
         model,
         train_loader,
         val_loader,
         optimizer,
         scheduler,
         loss_fn,
-        device,
-        checkpoint_period,
-        log_period,
-        epochs,
-        output_dir
 ):
+    log_period = cfg.SOLVER.LOG_PERIOD
+    checkpoint_period = cfg.SOLVER.CHECKPOINT_PERIOD
+    output_dir = cfg.OUTPUT_DIR
+    device = cfg.MODEL.DEVICE
+    epochs = cfg.SOLVER.MAX_EPOCHS
+
     logger = logging.getLogger("template_model.train")
     logger.info("Start training")
     trainer = create_supervised_trainer(model, optimizer, loss_fn, device=device)
@@ -37,13 +39,15 @@ def do_train(
     timer.attach(trainer, start=Events.EPOCH_STARTED, resume=Events.ITERATION_STARTED,
                  pause=Events.ITERATION_COMPLETED, step=Events.ITERATION_COMPLETED)
 
+    RunningAverage(output_transform=lambda x: x).attach(trainer, 'avg_loss')
+
     @trainer.on(Events.ITERATION_COMPLETED)
     def log_training_loss(engine):
         iter = (engine.state.iteration - 1) % len(train_loader) + 1
 
         if iter % log_period == 0:
             logger.info("Epoch[{}] Iteration[{}/{}] Loss: {:.2f}"
-                        .format(engine.state.epoch, iter, len(train_loader), engine.state.output))
+                        .format(engine.state.epoch, iter, len(train_loader), engine.state.metrics['avg_loss']))
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_training_results(engine):

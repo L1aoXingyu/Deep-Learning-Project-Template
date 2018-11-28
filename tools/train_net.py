@@ -7,6 +7,7 @@
 import argparse
 import os
 import sys
+from os import mkdir
 
 import torch.nn.functional as F
 
@@ -16,7 +17,7 @@ from data import make_data_loader
 from engine.example_trainer import do_train
 from modeling import build_model
 from solver import make_optimizer
-from os import mkdir
+
 from utils.logger import setup_logger
 
 
@@ -29,27 +30,17 @@ def train(cfg):
 
     arguments = {}
 
-    output_dir = cfg.OUTPUT_DIR
-
-    data_loader = make_data_loader(cfg, is_train=True)
+    train_loader = make_data_loader(cfg, is_train=True)
     val_loader = make_data_loader(cfg, is_train=False)
 
-    checkpoint_period = cfg.SOLVER.CHECKPOINT_PERIOD
-    log_period = cfg.SOLVER.LOG_PERIOD
-    epochs = cfg.SOLVER.MAX_EPOCHS
-
     do_train(
+        cfg,
         model,
-        data_loader,
+        train_loader,
         val_loader,
         optimizer,
         None,
         F.cross_entropy,
-        device,
-        checkpoint_period,
-        log_period,
-        epochs,
-        output_dir,
     )
 
 
