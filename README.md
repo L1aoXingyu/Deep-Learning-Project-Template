@@ -7,213 +7,124 @@ The main idea is that there's much same stuff you do every time when you start y
 In order to decrease repeated stuff, we recommend to use a high-level library. You can write your own high-level library or you can just use some third-part libraries such as [ignite](https://github.com/pytorch/ignite), [fastai](https://github.com/fastai/fastai), [mmcv](https://github.com/open-mmlab/mmcv) … etc. This can help you write compact but full-featured training loops in a few lines of code. Here we use ignite to train mnist as an example.
 
 # Requirements
-- yacs
-- pytorch
-- ignite
+- [yacs](https://github.com/rbgirshick/yacs) (Yet Another Configuration System)
+- [PyTorch](https://pytorch.org/) (An open source deep learning platform) 
+- [ignite](https://github.com/pytorch/ignite) (High-level library to help with training neural networks in PyTorch)
 
 # Table Of Contents
 -  [In a Nutshell](#in-a-nutshell)
 -  [In Details](#in-details)
-		-  [Project architecture](#project-architecture)
-		-  [Folder structure](#folder-structure)
-		-  [ Main Components](#main-components)
-				-  [Models](#models)
-				-  [Trainer](#trainer)
-				-  [Data Loader](#data-loader)
-				-  [Logger](#logger)
-				-  [Configuration](#configuration)
-				-  [Main](#main)
 -  [Future Work](#future-work)
 -  [Contributing](#contributing)
 -  [Acknowledgments](#acknowledgments)
 
 # In a Nutshell   
-In a nutshell here's how to use this template, so **for example** assume you want to implement VGG model so you should do the following:
--  In models folder create a class named VGG that inherit the "base_model" class
+In a nutshell here's how to use this template, so **for example** assume you want to implement ResNet-18 to train mnist, so you should do the following:
+- In `modeling`  folder create a python file named whatever you like, here we named it `example_model.py` . In `modeling/__init__.py` file, you can build a function named `build_model` to call your model
 
 ```python
+from .example_model import ResNet18
 
-    class VGGModel(BaseModel):
-        def __init__(self, config):
-            super(VGGModel, self).__init__(config)
-            #call the build_model and init_saver functions.
-            self.build_model() 
-            self.init_saver() 
-```
-- Override these two functions "build_model" where you implement the vgg model, and "init_saver" where you define a tensorflow saver, then call them in the initalizer.
-    
-```python
-     def build_model(self):
-        # here you build the tensorflow graph of any model you want and also define the loss.
-        pass
-            
-     def init_saver(self):
-        # here you initalize the tensorflow saver that will be used in saving the checkpoints.
-        self.saver = tf.train.Saver(max_to_keep=self.config.max_to_keep)
+def build_model(cfg):
+    model = ResNet18(cfg.MODEL.NUM_CLASSES)
+    return model
+``` 
 
-```
    
-- In trainers folder create a VGG trainer that inherit from "base_train" class
-```python
-
-    class VGGTrainer(BaseTrain):
-        def __init__(self, sess, model, data, config, logger):
-            super(VGGTrainer, self).__init__(sess, model, data, config, logger)
-```
-- Override these two functions "train_step", "train_epoch" where you write the logic of the training process
+- In `engine`  folder create a model trainer function and inference function. In trainer function, you need to write the logic of the training process, you can use some third-party library to decrease the repeated stuff.
 
 ```python
+# trainer
+def do_train(cfg, model, train_loader, val_loader, optimizer, scheduler, loss_fn):
+ """
+ implement the logic of epoch:
+ -loop on the number of iterations in the config and call the train step
+ -add any summaries you want using the summary
+ """
+pass
 
-    def train_epoch(self):
-        """
-       implement the logic of epoch:
-       -loop on the number of iterations in the config and call the train step
-       -add any summaries you want using the summary
-        """
-        pass
-
-    def train_step(self):
-        """
-       implement the logic of the train step
-       - run the tensorflow session
-       - return any metrics you need to summarize
-       """
-        pass
-
+# inference
+def inference(cfg, model, val_loader):
+"""
+implement the logic of the train step
+- run the tensorflow session
+- return any metrics you need to summarize
+ """
+pass
 ```
-- In main file, you create the session and instances of the following objects "Model", "Logger", "Data_Generator", "Trainer", and config
+
+- In `tools`  folder, you create the `train.py` .  In this file, you need to get the instances of the following objects "Model",  "DataLoader”, “Optimizer”, and config
 ```python
-    sess = tf.Session()
-    # create instance of the model you want
-    model = VGGModel(config)
-    # create your data generator
-    data = DataGenerator(config)
-    # create tensorboard logger
-    logger = Logger(sess, config)
+# create instance of the model you want
+model = build_model(cfg)
+
+# create your data generator
+train_loader = make_data_loader(cfg, is_train=True)
+val_loader = make_data_loader(cfg, is_train=False)
+
+# create your model optimizer
+optimizer = make_optimizer(cfg, model)
 ```
-- Pass the all these objects to the trainer object, and start your training by calling "trainer.train()" 
+
+- Pass the all these objects to the function `do_train` , and start your training
 ```python
-    trainer = VGGTrainer(sess, model, data, config, logger)
-
-    # here you train your model
-    trainer.train()
-
+# here you train your model
+do_train(cfg, model, train_loader, val_loader, optimizer, None, F.cross_entropy)
 ```
+
 **You will find a template file and a simple example in the model and trainer folder that shows you how to try your first model simply.**
 
 
 # In Details
-
-## Project architecture 
-- - - -
-
-architecture image
-
-## Folder structure
-- - - -
-
 ```
-├──  base
-│   ├── base_model.py   - this file contains the abstract class of the model.
-│   └── base_train.py   - this file contains the abstract class of the trainer.
+├──  config
+│    └── defaults.py  - here's the default config file.
 │
 │
-├── model               - this folder contains any model of your project.
+├──  configs  
+│    └── train_mnist_softmax.yml  - here's the specific config file for specific model or dataset.
+│ 
+│
+├──  data  
+│    └── datasets  - here's the datasets folder that is responsible for all data handling.
+│    └── transforms  - here's the data preprocess folder that is responsible for all data augmentation.
+│    └── build.py  		   - here's the file to make dataloader.
+│    └── collate_batch.py   - here's the file that is responsible for merges a list of samples to form a mini-batch.
+│
+│
+├──  engine
+│   ├── trainer.py     - this file contains the train loops.
+│   └── inference.py   - this file contains the inference process.
+│
+│
+├── layers              - this folder contains any customed layers of your project.
+│   └── conv_layer.py
+│
+│
+├── modeling            - this folder contains any model of your project.
 │   └── example_model.py
 │
 │
-├── trainer             - this folder contains trainers of your project.
-│   └── example_trainer.py
+├── solver             - this folder contains optimizer of your project.
+│   └── build.py
+│   └── lr_scheduler.py
 │   
-├──  mains              - here's the main(s) of your project (you may need more than one main).
-│    └── example_main.py  - here's an example of main that is responsible for the whole pipeline.
-
-│  
-├──  data _loader  
-│    └── data_generator.py  - here's the data_generator that is responsible for all data handling.
+│ 
+├──  tools                - here's the train/test model of your project.
+│    └── train_net.py  - here's an example of train model that is responsible for the whole pipeline.
+│ 
 │ 
 └── utils
-     ├── logger.py
-     └── any_other_utils_you_need
-
+│    ├── logger.py
+│    └── any_other_utils_you_need
+│ 
+│ 
+└── tests					- this foler contains unit test of your project.
+     ├── test_data_sampler.py
 ```
 
 
-## Main Components
-
-### Models
-- - - -
-#### **Base model**
-    
-    Base model is an abstract class that must be Inherited by any model you create, the idea behind this is that there's much shared stuff between all models.
-    The base model contains:
-		- ***Save*** -This function to save a checkpoint to the desk. 
-		- ***Load*** -This function to load a checkpoint from the desk.
-		- ***Cur_epoch, Global_step counters*** -These variables to keep track of the current epoch and global step.
-		- ***Init_Saver*** An abstract function to initialize the saver used for saving and loading the checkpoint, ***Note***: override this function in the model you want to implement.
-		- ***Build_model*** Here's an abstract function to define the model, ***Note***: override this function in the model you want to implement.
-
-#### **Your model**
-    Here's where you implement your model.
-    So you should :
-		- Create your model class and inherit the base_model class
-		- override "build_model" where you write the tensorflow model you want
-		- override "init_save" where you create a tensorflow saver to use it to save and load checkpoint
-		- call the "build_model" and "init_saver" in the initializer.
-
-### Trainer
-- - - -
-#### **Base trainer**
-    Base trainer is an abstract class that just wrap the training process.
-    
-#### **Your trainer**
-     Here's what you should implement in your trainer.
-		1. Create your trainer class and inherit the base_trainer class.
-		2. override these two functions "train_step", "train_epoch" where you implement the training process of each step and each epoch.
-
-### Data Loader
-This class is responsible for all data handling and processing and provide an easy interface that can be used by the trainer.
-
-### Logger
-This class is responsible for the tensorboard summary, in your trainer create a dictionary of all tensorflow variables you want to summarize then pass this dictionary to logger.summarize().
-
-
-This class also supports reporting to **Comet.ml** which allows you to see all your hyper-params, metrics, graphs, dependencies and more including real-time metric.
-Add your API key [in the configuration file](configs/example.json#L9):
-
-For example: "comet_api_key": "your key here"
-
-
-### Comet.ml Integration
-This template also supports reporting to Comet.ml which allows you to see all your hyper-params, metrics, graphs, dependencies and more including real-time metric. 
-
-Add your API key [in the configuration file](configs/example.json#L9):
-
-
-For example:  `"comet_api_key": "your key here"` 
-
-Here's how it looks after you start training:
-
-
-You can also link your Github repository to your comet.ml project for full version control. 
-[Here's a live page showing the example from this repo](https://www.comet.ml/gidim/tensorflow-project-template/caba580d8d1547ccaed982693a645507/chart)
-
-
-
-### Configuration
-I use Json as configuration method and then parse it, so write all configs you want then parse it using "utils/config/process_config" and pass this configuration object to all other objects.
-### Main
-Here's where you combine all previous part.
-1. Parse the config file.
-2. Create a tensorflow session.
-2. Create an instance of "Model", "Data_Generator" and "Logger" and parse the config to all of them.
-3. Create an instance of "Trainer" and pass all previous objects to it.
-4. Now you can train your model by calling "Trainer.train()"
-
-
 # Future Work
-- Replace the data loader part with new tensorflow dataset API.
-
 
 # Contributing
 Any kind of enhancement or contribution is welcomed.
